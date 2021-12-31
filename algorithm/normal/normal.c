@@ -29,7 +29,7 @@ void normal_cdf_print(){
 	// 
 	for (int i = 0; i < LOWERTYPE; i++)
 	{
-		printf("[normal_cdf]\n total_micro: %llu\n cnt: %llu\n max: %llu\n min:%llu\n",
+		printf("[normal_cdf]\n total_micro: %lu\n cnt: %lu\n max: %lu\n min:%lu\n",
 			_cdf->total_micro, _cdf ->cnt, _cdf->max, _cdf->min);
 	}
 }
