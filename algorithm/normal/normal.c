@@ -82,6 +82,7 @@ uint32_t normal_set(request *const req){
 	static int cnt=0;
 
 	__normal.li->write(req->key, PAGESIZE, req->value, my_req);
+	//printf("\n [ req-> key : %d , req -> value %s]\n", req->key, req->value-> value);
 	return 0;
 }
 uint32_t normal_remove(request *const req){
