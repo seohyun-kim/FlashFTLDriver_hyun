@@ -19,31 +19,28 @@ struct algorithm __normal = {
 	.remove = normal_remove
 };
 
-n_cdf _cdf[LOWERTYPE];
+//n_cdf _cdf[LOWERTYPE];
 
 //char temp[PAGESIZE];
-uint_fast8_t temp[PAGESIZE]; //unsigned char로 변경
-//======== temp array의 역할? 
 
-void normal_cdf_print(){
-	// 
-	for (int i = 0; i < LOWERTYPE; i++)
-	{
-		printf("[normal_cdf]\n total_micro: %lu\n cnt: %lu\n max: %lu\n min:%lu\n",
-			_cdf->total_micro, _cdf ->cnt, _cdf->max, _cdf->min);
-	}
-}
+
+//void normal_cdf_print(){
+//	// 
+//	for (int i = 0; i < LOWERTYPE; i++)
+//	{
+//		printf("[normal_cdf]\n total_micro: %lu\n cnt: %lu\n max: %lu\n min:%lu\n",
+//			_cdf->total_micro, _cdf ->cnt, _cdf->max, _cdf->min);
+//	}
+//}
 
 uint32_t normal_create (lower_info* li,blockmanager *a, algorithm *algo){
 	algo->li=li; //lower_info
 
-	//memset(temp,'x',PAGESIZE); //초기화('x'= 0110 1000)
-	//왜 x로 초기화 하지? 이론상 1111 1111이 아닌가?
-	memset(temp, UCHAR_MAX, PAGESIZE);
+	//memset(temp,'x',PAGESIZE);
 
-	for(int i=0; i<LOWERTYPE; i++){
-		_cdf[i].min=UINT_MAX;
-	}// _cdf 초기화
+	//for(int i=0; i<LOWERTYPE; i++){
+	//	_cdf[i].min=UINT_MAX;
+	//}// _cdf 초기화
 
 	return 1;
 }
@@ -54,7 +51,7 @@ void normal_destroy (lower_info* li, algorithm *algo){
 	return;
 }
 
-int normal_cnt; //idx
+int normal_cnt;
 
 
 uint32_t normal_get(request *const req){
@@ -83,10 +80,7 @@ uint32_t normal_set(request *const req){
 	my_req->type=DATAW;
 	my_req->param=(void*)params;
 	static int cnt=0;
-	//if(cnt++%10240==0){
-	//	printf("key:%d\n",req->key);
-	//}
-	//__normal.li->write(req->key,PAGESIZE,req->value,req->isAsync,my_req);
+
 	__normal.li->write(req->key, PAGESIZE, req->value, my_req);
 	return 0;
 }
@@ -99,8 +93,8 @@ void *normal_end_req(algo_req* input){
 	normal_params* params=(normal_params*)(input->param);//
 	//bool check=false;
 	//int cnt=0;
-	request *res=input->parents; //parents 넘겨줌
-	res->end_req(res); //end 요청
+	request *res=input->parents;
+	res->end_req(res);
 
 	free(params);
 	free(input);
