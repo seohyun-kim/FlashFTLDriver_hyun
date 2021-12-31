@@ -55,7 +55,7 @@
 #define _NOB (BPS*_NOS)
 #define _RNOS (REALSIZE/(_PPS*PAGESIZE))//real number of segment
 
-#define RANGE (SHOWINGSIZE/LPAGESIZE)
+#define RANGE (SHOWINGSIZE/PAGESIZE)
 #define DEVFULL ((uint32_t)TOTALSIZE/LPAGESIZE)
 #define TOTALLPN ((uint32_t)RANGE)
 
