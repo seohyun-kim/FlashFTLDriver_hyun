@@ -16,8 +16,7 @@ struct algorithm __normal = {
 	.destroy = normal_destroy,
 	.read = normal_get,
 	.write = normal_set,
-	.remove = normal_remove,
-	.print_log = normal_cdf_print // 
+	.remove = normal_remove
 };
 
 n_cdf _cdf[LOWERTYPE];
