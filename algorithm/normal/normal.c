@@ -64,7 +64,7 @@ uint32_t normal_get(request *const req){
 	algo_req *my_req=(algo_req*)malloc(sizeof(algo_req));
 	my_req->parents=req;
 	my_req->end_req=normal_end_req; //end È£Ãâ
-	my_req->params=(void*)params;
+	my_req->param=(void*)params;
 	normal_cnt++;
 	my_req->type=DATAR;
 
@@ -81,7 +81,7 @@ uint32_t normal_set(request *const req){
 	my_req->end_req=normal_end_req;
 	normal_cnt++;
 	my_req->type=DATAW;
-	my_req->params=(void*)params;
+	my_req->param=(void*)params;
 	static int cnt=0;
 	//if(cnt++%10240==0){
 	//	printf("key:%d\n",req->key);
@@ -96,7 +96,7 @@ uint32_t normal_remove(request *const req){
 	return 1;
 }
 void *normal_end_req(algo_req* input){
-	normal_params* params=(normal_params*)(input->params);//
+	normal_params* params=(normal_params*)(input->param);//
 	//bool check=false;
 	//int cnt=0;
 	request *res=input->parents; //parents ³Ñ°ÜÁÜ
