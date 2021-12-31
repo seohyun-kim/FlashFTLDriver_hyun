@@ -7,7 +7,7 @@
 #include "normal.h"
 #include "../../bench/bench.h"
 
-#define LOWERTYPE 10
+//#define LOWERTYPE 10
 
 extern MeasureTime mt;
 struct algorithm __normal = {
