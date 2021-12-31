@@ -46,8 +46,8 @@ uint32_t normal_create (lower_info* li,blockmanager *a, algorithm *algo){
 }
 
 void normal_destroy (lower_info* li, algorithm *algo){
-	normal_cdf_print();
-	// destroy
+	//normal_cdf_print();
+
 	return;
 }
 
