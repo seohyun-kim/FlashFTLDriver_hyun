@@ -1,5 +1,4 @@
 //  FTL Direct Mapping
-//test
 
 #include <string.h>
 #include <stdlib.h>
@@ -7,8 +6,6 @@
 #include <limits.h>
 #include "normal.h"
 #include "../../bench/bench.h"
-
-//#define LOWERTYPE 10
 
 extern MeasureTime mt;
 struct algorithm __normal = {
@@ -20,29 +17,13 @@ struct algorithm __normal = {
 	.remove = normal_remove
 };
 
-//n_cdf _cdf[LOWERTYPE];
-
-//char temp[PAGESIZE];
-
 
 //void normal_cdf_print(){
-//	// 
-//	for (int i = 0; i < LOWERTYPE; i++)
-//	{
-//		printf("[normal_cdf]\n total_micro: %lu\n cnt: %lu\n max: %lu\n min:%lu\n",
-//			_cdf->total_micro, _cdf ->cnt, _cdf->max, _cdf->min);
-//	}
+
 //}
 
 uint32_t normal_create (lower_info* li,blockmanager *a, algorithm *algo){
 	algo->li=li; //lower_info
-
-	//memset(temp,'x',PAGESIZE);
-
-	//for(int i=0; i<LOWERTYPE; i++){
-	//	_cdf[i].min=UINT_MAX;
-	//}// _cdf 초기화
-
 	return 1;
 }
 
@@ -55,7 +36,7 @@ void normal_destroy (lower_info* li, algorithm *algo){
 int normal_cnt;
 
 
-uint32_t normal_get(request *const req){
+uint32_t normal_get(request *const req){ // READ
 	normal_params* params=(normal_params*)malloc(sizeof(normal_params));
 	params->test=-1;
 
@@ -63,40 +44,59 @@ uint32_t normal_get(request *const req){
 	my_req->parents=req;
 	my_req->end_req=normal_end_req; //end 호출
 	my_req->param=(void*)params;
-	normal_cnt++;
+	//normal_cnt++;
+	(params->test)--;
 	my_req->type=DATAR;
 
-	//__normal.li->read(req->key,PAGESIZE,req->value,req->isAsync,my_req);
 	__normal.li->read(req->key, PAGESIZE, req->value, my_req);
 	return 1;
 }
-uint32_t normal_set(request *const req){
+uint32_t normal_set(request *const req){ // WRITE
 	normal_params* params=(normal_params*)malloc(sizeof(normal_params));
-	params->test=-1;
-
+	params->test=0;
 	algo_req *my_req=(algo_req*)malloc(sizeof(algo_req));
 	my_req->parents=req;
-	my_req->end_req=normal_end_req;
-	normal_cnt++;
+	my_req->end_req=normal_end_req; //end 호출
+	//normal_cnt++;
+	(params->test)++;
 	my_req->type=DATAW;
 	my_req->param=(void*)params;
 	static int cnt=0;
-
 	__normal.li->write(req->key, PAGESIZE, req->value, my_req);
-	//printf("\n [ req-> key : %d , req -> value %s]\n", req->key, req->value-> value);
 	return 0;
 }
 uint32_t normal_remove(request *const req){
-	//__normal.li->trim_block(req->key, false);
 	__normal.li->trim_block(req->key);
 	return 1;
 }
 void *normal_end_req(algo_req* input){
 	normal_params* params=(normal_params*)(input->param);//
-	//bool check=false;
-	//int cnt=0;
 	request *res=input->parents;
 	res->end_req(res);
+
+	while (params->test < 0) {
+		//WRITE가 완료될 때 까지 Blocking
+	}
+
+	uint32_t ppa;
+
+	switch (input->type) {
+		case DATAR: //READ
+			ppa = *(uint32_t*)&res->value->value[0];
+			printf("lba:%u -> ppa:%u\n", res->key, ppa);
+			if (data != res->key) {
+				printf("WRONG!\n");
+				exit(1);
+			}
+			break;
+		case DATAW: //WRITE
+			break;
+		default:
+			exit(1);
+			break;
+	}
+
+
 
 	free(params);
 	free(input);
