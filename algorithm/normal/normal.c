@@ -9,6 +9,9 @@
 #include "normal.h"
 #include "../../bench/bench.h"
 
+#include <sys/wait.h>
+
+
 extern MeasureTime mt;
 struct algorithm __normal = {
 	.argument_set = NULL,
@@ -46,7 +49,6 @@ uint32_t normal_get(request *const req){ // READ
 	my_req->parents=req;
 	my_req->end_req=normal_end_req; //end 호출
 	my_req->param=(void*)params;
-	//normal_cnt++;
 	//(params->test)--;
 	my_req->type=DATAR;
 
@@ -55,11 +57,10 @@ uint32_t normal_get(request *const req){ // READ
 }
 uint32_t normal_set(request *const req){ // WRITE
 	normal_params* params=(normal_params*)malloc(sizeof(normal_params));
-	params->test=0;
+	params->test=1;
 	algo_req *my_req=(algo_req*)malloc(sizeof(algo_req));
 	my_req->parents=req;
 	my_req->end_req=normal_end_req; //end 호출
-	//normal_cnt++;
 	
 	my_req->type=DATAW;
 	my_req->param=(void*)params;
@@ -86,7 +87,9 @@ void *normal_end_req(algo_req* input){
 
 	switch (input->type) {
 		case DATAR: //READ
-			(params->test)++;
+			//params->test++;
+			//params -> parents -> tid = wait(& params -> test);
+			//printf("params -> test : %d\n\n", params -> test);
 			ppa =*(uint32_t*)&*(res->value -> value);
 			normal_cnt ++;
 			if(normal_cnt > 100){
@@ -100,7 +103,7 @@ void *normal_end_req(algo_req* input){
 			}
 			break;
 		case DATAW: //WRITE
-			(params->test)--;
+			//params->test--;
 			break;
 		default:
 			exit(1);
