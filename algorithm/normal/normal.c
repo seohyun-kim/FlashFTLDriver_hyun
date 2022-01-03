@@ -1,4 +1,5 @@
 
+
 //  FTL Direct Mapping
 
 #include <string.h>
@@ -34,7 +35,7 @@ void normal_destroy (lower_info* li, algorithm *algo){
 	return;
 }
 
-int normal_cnt;
+int normal_cnt=0;
 
 
 uint32_t normal_get(request *const req){ // READ
@@ -78,7 +79,7 @@ void *normal_end_req(algo_req* input){
 	//res->end_req(res);
 
 	//while (params->test < 0) {
-		//WRITE가 완료될 때 까지 Blocking
+	//	//WRITE가 완료될 때 까지 Blocking
 	//}
 
 	uint32_t ppa;
@@ -86,8 +87,12 @@ void *normal_end_req(algo_req* input){
 	switch (input->type) {
 		case DATAR: //READ
 			(params->test)++;
-			ppa =*(uint32_t*)&res->value -> value[0];
-			
+			ppa =*(uint32_t*)&*(res->value -> value);
+			normal_cnt ++;
+			if(normal_cnt > 100){
+				printf("exit over 100");	
+				exit(0);
+			}
 			printf("lba:%u -> ppa:%u\n", res->key, ppa);
 			if (ppa != res->key) {
 				printf("WRONG!\n");
@@ -103,7 +108,7 @@ void *normal_end_req(algo_req* input){
 	}
 
 	res -> end_req(res);
-
+		
 	free(params);
 	free(input);
 	return NULL;
