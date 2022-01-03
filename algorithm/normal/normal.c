@@ -46,7 +46,7 @@ uint32_t normal_get(request *const req){ // READ
 	my_req->end_req=normal_end_req; //end 호출
 	my_req->param=(void*)params;
 	//normal_cnt++;
-	(params->test)--;
+	//(params->test)--;
 	my_req->type=DATAR;
 
 	__normal.li->read(req->key, PAGESIZE, req->value, my_req);
@@ -59,10 +59,12 @@ uint32_t normal_set(request *const req){ // WRITE
 	my_req->parents=req;
 	my_req->end_req=normal_end_req; //end 호출
 	//normal_cnt++;
-	(params->test)++;
+	
 	my_req->type=DATAW;
 	my_req->param=(void*)params;
-	static int cnt=0;
+	
+	memcpy(req->value->value, &req->key, sizeof(req->key));
+
 	__normal.li->write(req->key, PAGESIZE, req->value, my_req);
 	return 0;
 }
@@ -83,6 +85,7 @@ void *normal_end_req(algo_req* input){
 
 	switch (input->type) {
 		case DATAR: //READ
+			(params->test)++;
 			ppa =*(uint32_t*)&res->value -> value[0];
 			
 			printf("lba:%u -> ppa:%u\n", res->key, ppa);
@@ -92,6 +95,7 @@ void *normal_end_req(algo_req* input){
 			}
 			break;
 		case DATAW: //WRITE
+			(params->test)--;
 			break;
 		default:
 			exit(1);
