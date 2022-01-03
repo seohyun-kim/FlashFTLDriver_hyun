@@ -23,10 +23,6 @@ struct algorithm __normal = {
 };
 
 
-//void normal_cdf_print(){
-
-//}
-
 uint32_t normal_create (lower_info* li,blockmanager *a, algorithm *algo){
 	algo->li=li; //lower_info
 	return 1;
@@ -49,7 +45,6 @@ uint32_t normal_get(request *const req){ // READ
 	my_req->parents=req;
 	my_req->end_req=normal_end_req; //end 호출
 	my_req->param=(void*)params;
-	//(params->test)--;
 	my_req->type=DATAR;
 
 	__normal.li->read(req->key, PAGESIZE, req->value, my_req);
@@ -61,12 +56,19 @@ uint32_t normal_set(request *const req){ // WRITE
 	algo_req *my_req=(algo_req*)malloc(sizeof(algo_req));
 	my_req->parents=req;
 	my_req->end_req=normal_end_req; //end 호출
+
+	// 임시 저장
+	//value_set* value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
+
+	//임시 저장 공간 free 
+	//inf_free_valueset(value, FS_MALLOC_W);
+
 	
 	my_req->type=DATAW;
 	my_req->param=(void*)params;
 	
 	memcpy(req->value->value, &req->key, sizeof(req->key));
-
+	req->end_req(req);
 	__normal.li->write(req->key, PAGESIZE, req->value, my_req);
 	return 0;
 }
@@ -79,23 +81,17 @@ void *normal_end_req(algo_req* input){
 	request *res=input->parents;
 	//res->end_req(res);
 
-	//while (params->test < 0) {
-	//	//WRITE가 완료될 때 까지 Blocking
-	//}
-
 	uint32_t ppa;
 
 	switch (input->type) {
 		case DATAR: //READ
-			//params->test++;
-			//params -> parents -> tid = wait(& params -> test);
-			//printf("params -> test : %d\n", params -> test);
-			ppa =*(uint32_t*)(res->value -> value);
+			
+			ppa = *(uint32_t*)(res->value->value);
 			normal_cnt ++;
-			//if(normal_cnt > 100){
-			//	printf("exit over 100");	
-			//	exit(0);
-			//}
+			if(normal_cnt > 100){
+				printf("exit over 100");	
+				exit(0);
+			}
 			printf("lba:%u -> ppa:%u\n", res->key, ppa);
 			if (ppa != res->key) {
 				printf("WRONG!\n");
