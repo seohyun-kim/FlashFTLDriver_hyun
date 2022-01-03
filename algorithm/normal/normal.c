@@ -58,18 +58,24 @@ uint32_t normal_set(request *const req){ // WRITE
 	my_req->end_req=normal_end_req; //end 호출
 
 	// 임시 저장
-	//value_set* value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
+	value_set* value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
 
-	//임시 저장 공간 free 
-	//inf_free_valueset(value, FS_MALLOC_W);
+
 
 	
 	my_req->type=DATAW;
 	my_req->param=(void*)params;
 	
-	memcpy(req->value->value, &req->key, sizeof(req->key));
-	req->end_req(req);
-	__normal.li->write(req->key, PAGESIZE, req->value, my_req);
+	//memcpy(req->value->value, &req->key, sizeof(req->key));
+	memcpy(value, &req->key[normal_cnt/4], sizeof(PAGESIZE));
+
+	req->end_req(req); 
+	__normal.li->write(req->key, PAGESIZE, value, my_req);
+	//__normal.li->write(req->key, PAGESIZE, req->value, my_req);
+
+	//임시 저장 공간 free 
+	inf_free_valueset(value, FS_MALLOC_W);
+	
 	return 0;
 }
 uint32_t normal_remove(request *const req){
