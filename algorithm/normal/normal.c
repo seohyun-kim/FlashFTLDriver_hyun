@@ -1,3 +1,4 @@
+
 //  FTL Direct Mapping
 
 #include <string.h>
@@ -75,14 +76,15 @@ void *normal_end_req(algo_req* input){
 	//res->end_req(res);
 
 	//while (params->test < 0) {
-	//	//WRITE가 완료될 때 까지 Blocking
+		//WRITE가 완료될 때 까지 Blocking
 	//}
 
 	uint32_t ppa;
 
 	switch (input->type) {
 		case DATAR: //READ
-			ppa = *(uint32_t*)&res->value->value[0];
+			ppa =*(uint32_t*)&res->value -> value[0];
+			
 			printf("lba:%u -> ppa:%u\n", res->key, ppa);
 			if (ppa != res->key) {
 				printf("WRONG!\n");
