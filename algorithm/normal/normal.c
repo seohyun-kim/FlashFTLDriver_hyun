@@ -89,13 +89,13 @@ void *normal_end_req(algo_req* input){
 		case DATAR: //READ
 			//params->test++;
 			//params -> parents -> tid = wait(& params -> test);
-			//printf("params -> test : %d\n\n", params -> test);
-			ppa =*(uint32_t*)&*(res->value -> value);
+			//printf("params -> test : %d\n", params -> test);
+			ppa =*(uint32_t*)(res->value -> value);
 			normal_cnt ++;
-			if(normal_cnt > 100){
-				printf("exit over 100");	
-				exit(0);
-			}
+			//if(normal_cnt > 100){
+			//	printf("exit over 100");	
+			//	exit(0);
+			//}
 			printf("lba:%u -> ppa:%u\n", res->key, ppa);
 			if (ppa != res->key) {
 				printf("WRONG!\n");
