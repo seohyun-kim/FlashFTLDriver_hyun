@@ -72,11 +72,11 @@ uint32_t normal_remove(request *const req){
 void *normal_end_req(algo_req* input){
 	normal_params* params=(normal_params*)(input->param);//
 	request *res=input->parents;
-	res->end_req(res);
+	//res->end_req(res);
 
-	while (params->test < 0) {
-		//WRITE가 완료될 때 까지 Blocking
-	}
+	//while (params->test < 0) {
+	//	//WRITE가 완료될 때 까지 Blocking
+	//}
 
 	uint32_t ppa;
 
@@ -84,7 +84,7 @@ void *normal_end_req(algo_req* input){
 		case DATAR: //READ
 			ppa = *(uint32_t*)&res->value->value[0];
 			printf("lba:%u -> ppa:%u\n", res->key, ppa);
-			if (data != res->key) {
+			if (ppa != res->key) {
 				printf("WRONG!\n");
 				exit(1);
 			}
@@ -96,7 +96,7 @@ void *normal_end_req(algo_req* input){
 			break;
 	}
 
-
+	res -> end_req(res);
 
 	free(params);
 	free(input);
