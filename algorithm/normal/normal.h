@@ -2,6 +2,7 @@
 typedef struct normal_params{
 	request *parents;
 	int test;
+	int cnt_offset;
 }normal_params;
 
 typedef struct normal_cdf_struct{

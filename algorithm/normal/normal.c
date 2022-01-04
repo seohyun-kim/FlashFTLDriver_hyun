@@ -52,28 +52,30 @@ uint32_t normal_get(request *const req){ // READ
 }
 uint32_t normal_set(request *const req){ // WRITE
 	normal_params* params=(normal_params*)malloc(sizeof(normal_params));
-	params->test=1;
+	params->cnt_offset = 0;
+
 	algo_req *my_req=(algo_req*)malloc(sizeof(algo_req));
 	my_req->parents=req;
 	my_req->end_req=normal_end_req; //end È£Ãâ
 
-	// ÀÓ½Ã ÀúÀå
+	// value buffer
 	value_set* value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
 
-
-
-	
 	my_req->type=DATAW;
 	my_req->param=(void*)params;
 	
 	//memcpy(req->value->value, &req->key, sizeof(req->key));
 	memcpy(value->value, &req->key, sizeof(req->key));
+	params->cnt_offset++;
+	if (params->cnt_offset > 3) {
+		req->end_req(req);
+		__normal.li->write(req->key, LPAGESIZE, value, my_req);//
+		params->cnt_offset = 0;
+	}
 
-	req->end_req(req); 
-	__normal.li->write(req->key, LPAGESIZE, value, my_req);//4KBì”©
 	//__normal.li->write(req->key, PAGESIZE, req->value, my_req);
 
-	//ÀÓ½Ã ÀúÀå °ø°£ free 
+	// free  value buffer
 	inf_free_valueset(value, FS_MALLOC_W);
 	
 	return 0;
@@ -94,10 +96,6 @@ void *normal_end_req(algo_req* input){
 			//ppa = *(uint32_t*)(res->value->value);
 
 			ppa = *(uint32_t*)res -> value -> value;
-			rem_cnt++;
-			if(rem_cnt >3){
-				rem_cnt=0;
-			}
 
 			normal_cnt ++;
 			if(normal_cnt > 100){
@@ -111,7 +109,6 @@ void *normal_end_req(algo_req* input){
 			}
 			break;
 		case DATAW: //WRITE
-			//params->test--;
 			break;
 		default:
 			exit(1);
