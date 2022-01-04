@@ -1,5 +1,6 @@
 
 
+
 //  FTL Direct Mapping
 
 #include <string.h>
@@ -9,8 +10,6 @@
 #include "normal.h"
 #include "../../interface/interface.h"
 #include "../../bench/bench.h"
-
-#include <sys/wait.h>
 
 
 extern MeasureTime mt;
@@ -36,7 +35,7 @@ void normal_destroy (lower_info* li, algorithm *algo){
 }
 
 int normal_cnt=0;
-
+int rem_cnt=0;
 
 uint32_t normal_get(request *const req){ // READ
 	normal_params* params=(normal_params*)malloc(sizeof(normal_params));
@@ -68,10 +67,10 @@ uint32_t normal_set(request *const req){ // WRITE
 	my_req->param=(void*)params;
 	
 	//memcpy(req->value->value, &req->key, sizeof(req->key));
-	memcpy(value, &req->key, sizeof(PAGESIZE));
+	memcpy(value->value, &req->key, sizeof(req->key));
 
 	req->end_req(req); 
-	__normal.li->write(req->key, PAGESIZE, value, my_req);
+	__normal.li->write(req->key, LPAGESIZE, value, my_req);//4KBì”©
 	//__normal.li->write(req->key, PAGESIZE, req->value, my_req);
 
 	//ÀÓ½Ã ÀúÀå °ø°£ free 
@@ -86,17 +85,23 @@ uint32_t normal_remove(request *const req){
 void *normal_end_req(algo_req* input){
 	normal_params* params=(normal_params*)(input->param);//
 	request *res=input->parents;
-	//res->end_req(res);
 
 	uint32_t ppa;
 
 	switch (input->type) {
 		case DATAR: //READ
-			
-			ppa = *(uint32_t*)(res->value->value);
+
+			//ppa = *(uint32_t*)(res->value->value);
+
+			ppa = *(uint32_t*)res -> value -> value;
+			rem_cnt++;
+			if(rem_cnt >3){
+				rem_cnt=0;
+			}
+
 			normal_cnt ++;
 			if(normal_cnt > 100){
-				printf("exit over 100");	
+				printf("exit over 100");
 				exit(0);
 			}
 			printf("lba:%u -> ppa:%u\n", res->key, ppa);
