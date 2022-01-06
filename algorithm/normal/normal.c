@@ -63,21 +63,18 @@ uint32_t normal_set(request *const req){ // WRITE
 
 	my_req->type=DATAW;
 	my_req->param=(void*)params;
-	
-	//memcpy(req->value->value, &req->key, sizeof(req->key));
+
 	memcpy(value->value, &req->key, sizeof(req->key));
 	params->cnt_offset++;
-	if (params->cnt_offset > 3) {
+	if (params->cnt_offset == 3) {
 		req->end_req(req);
 		__normal.li->write(req->key, LPAGESIZE, value, my_req);//
 		params->cnt_offset = 0;
 	}
 
-	//__normal.li->write(req->key, PAGESIZE, req->value, my_req);
-
 	// free  value buffer
 	inf_free_valueset(value, FS_MALLOC_W);
-	
+
 	return 0;
 }
 uint32_t normal_remove(request *const req){
@@ -93,9 +90,7 @@ void *normal_end_req(algo_req* input){
 	switch (input->type) {
 		case DATAR: //READ
 
-			//ppa = *(uint32_t*)(res->value->value);
-
-			ppa = *(uint32_t*)res -> value -> value;
+			ppa = *(uint32_t*)&res -> value -> value[params->cnt_offset];
 
 			normal_cnt ++;
 			if(normal_cnt > 100){
@@ -114,8 +109,9 @@ void *normal_end_req(algo_req* input){
 			exit(1);
 			break;
 	}
-
-	res -> end_req(res);
+	if(params->cnt_offset == 3){
+		res -> end_req(res);
+	}
 
 	free(params);
 	free(input);
