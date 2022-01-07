@@ -86,33 +86,37 @@ void *normal_end_req(algo_req* input){
 	request *res=input->parents;
 
 	uint32_t ppa;
-
-	switch (input->type) {
+	if (params->cnt_offset == 3) {
+		switch (input->type) {
 		case DATAR: //READ
+			// value buffer
+			value_set* value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
+			memcpy(value->value, res->value->value, PAGESIZE);
+			//ppa = *(uint32_t*)&res -> value -> value[params->cnt_offset];
 
-			ppa = *(uint32_t*)&res -> value -> value[params->cnt_offset];
-
-			normal_cnt ++;
-			if(normal_cnt > 100){
-				printf("exit over 100");
+			normal_cnt++;
+			if (normal_cnt > 100) {
+				printf("exit over 100. done!\n");
 				exit(0);
 			}
-			printf("lba:%u -> ppa:%u\n", res->key, ppa);
+			/*printf("lba:%u -> ppa:%u\n", res->key, ppa);
 			if (ppa != res->key) {
 				printf("WRONG!\n");
 				exit(1);
-			}
+			}*/
 			break;
 		case DATAW: //WRITE
 			break;
 		default:
 			exit(1);
 			break;
-	}
-	if(params->cnt_offset == 3){
-		res -> end_req(res);
-	}
+		}
 
+
+	}
+	
+	res->end_req(res);
+	inf_free_valueset(value, FS_MALLOC_W);
 	free(params);
 	free(input);
 	return NULL;
