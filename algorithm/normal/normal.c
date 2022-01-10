@@ -39,41 +39,39 @@ int rem_cnt=0;
 
 uint32_t normal_get(request *const req){ // READ
 	normal_params* params=(normal_params*)malloc(sizeof(normal_params));
-	params->test=-1;
 
 	algo_req *my_req=(algo_req*)malloc(sizeof(algo_req));
 	my_req->parents=req;
-	my_req->end_req=normal_end_req; //end 호출
+	my_req->end_req=normal_end_req;
 	my_req->param=(void*)params;
 	my_req->type=DATAR;
 
-	__normal.li->read(req->key, PAGESIZE, req->value, my_req);
+	__normal.li->read((req->key)/4, PAGESIZE, req->value, my_req);
 	return 1;
 }
 uint32_t normal_set(request *const req){ // WRITE
 	normal_params* params=(normal_params*)malloc(sizeof(normal_params));
-	params->cnt_offset = 0;
 
 	algo_req *my_req=(algo_req*)malloc(sizeof(algo_req));
 	my_req->parents=req;
-	my_req->end_req=normal_end_req; //end 호출
+	my_req->end_req=normal_end_req;
+
+	static value_set* value;
 
 	// value buffer
-	value_set* value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
-
+	if (req->key % 4 == 0) {
+		value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
+	}
+	
 	my_req->type=DATAW;
 	my_req->param=(void*)params;
+	memcpy((req->value->value)+LPAGESIZE, &req->key, sizeof(req->key));
 
-	memcpy(value->value, &req->key, sizeof(req->key));
-	params->cnt_offset++;
-	if (params->cnt_offset == 3) {
+	if (req->key % 4 == 3) {
 		req->end_req(req);
-		__normal.li->write(req->key, LPAGESIZE, value, my_req);//
-		params->cnt_offset = 0;
+		__normal.li->write((req->key)/4, PAGESIZE, value, my_req);//
+		inf_free_valueset(value, FS_MALLOC_W);
 	}
-
-	// free  value buffer
-	inf_free_valueset(value, FS_MALLOC_W);
 
 	return 0;
 }
@@ -90,21 +88,19 @@ void *normal_end_req(algo_req* input){
 	if (params->cnt_offset == 3) {
 		switch (input->type) {
 		case DATAR: //READ
-			// value buffer
 			memcpy(value->value, res->value->value, PAGESIZE);
-			//ppa = *(uint32_t*)&res -> value -> value[params->cnt_offset];
+			ppa = *(uint32_t*)(res->value->value + (res->key % 4) * LPAGESIZE);
 
 			normal_cnt++;
 			if (normal_cnt > 100) {
 				printf("exit over 100. done!\n");
 				exit(0);
 			}
-			/*printf("lba:%u -> ppa:%u\n", res->key, ppa);
+			printf("lba:%u -> ppa:%u\n", res->key, ppa);
 			if (ppa != res->key) {
 				printf("WRONG!\n");
 				exit(1);
-			}*/
-			inf_free_valueset(value, FS_MALLOC_W);
+			}
 			break;
 		case DATAW: //WRITE
 			printf("normal_end_req__WRITE");
@@ -114,8 +110,6 @@ void *normal_end_req(algo_req* input){
 			exit(1);
 			break;
 		}
-
-
 	}
 	inf_free_valueset(value, FS_MALLOC_W);
 	res->end_req(res);
