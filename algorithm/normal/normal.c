@@ -62,14 +62,16 @@ uint32_t normal_set(request *const req){ // WRITE
 	if (req->key % 4 == 0) {
 		value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
 	}
-	
+
 	my_req->type=DATAW;
 	my_req->param=(void*)params;
-	memcpy((req->value->value)+LPAGESIZE, &req->key, sizeof(req->key));
+	printf("test: value->value  = %d\n", *value->value);
+	memcpy((uint32_t*)(value->value)+(req->key)%4, &req->key, sizeof(req->key));
 
 	if (req->key % 4 == 3) {
 		req->end_req(req);
-		__normal.li->write((req->key)/4, PAGESIZE, value, my_req);//
+
+		__normal.li->write((req->key)/4, PAGESIZE, req->value, my_req);//
 		inf_free_valueset(value, FS_MALLOC_W);
 	}
 
@@ -83,24 +85,25 @@ void *normal_end_req(algo_req* input){
 	normal_params* params=(normal_params*)(input->param);//
 	request *res=input->parents;
 
-	//uint32_t ppa;
-	value_set* value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
-	if (params->cnt_offset == 3) {
+	uint32_t ppa;
+	if ((res->key)%4 == 3) {
 		switch (input->type) {
 		case DATAR: //READ
-			memcpy(value->value, res->value->value, PAGESIZE);
-			ppa = *(uint32_t*)(res->value->value + (res->key % 4) * LPAGESIZE);
+			//memcpy(value->value, res->value->value, PAGESIZE);
+			printf("%d", *(uint32_t*)res->value->value);
+			ppa = *((uint32_t*)res->value->value + (res->key % 4));
 
 			normal_cnt++;
 			if (normal_cnt > 100) {
 				printf("exit over 100. done!\n");
 				exit(0);
 			}
+			/*
 			printf("lba:%u -> ppa:%u\n", res->key, ppa);
 			if (ppa != res->key) {
 				printf("WRONG!\n");
 				exit(1);
-			}
+			}*/
 			break;
 		case DATAW: //WRITE
 			printf("normal_end_req__WRITE");
@@ -111,7 +114,7 @@ void *normal_end_req(algo_req* input){
 			break;
 		}
 	}
-	inf_free_valueset(value, FS_MALLOC_W);
+	//inf_free_valueset(value, FS_MALLOC_W);
 	res->end_req(res);
 	free(params);
 	free(input);
