@@ -85,12 +85,12 @@ void *normal_end_req(algo_req* input){
 	normal_params* params=(normal_params*)(input->param);//
 	request *res=input->parents;
 
-	uint32_t ppa;
+	//uint32_t ppa;
+	value_set* value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
 	if (params->cnt_offset == 3) {
 		switch (input->type) {
 		case DATAR: //READ
 			// value buffer
-			value_set* value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
 			memcpy(value->value, res->value->value, PAGESIZE);
 			//ppa = *(uint32_t*)&res -> value -> value[params->cnt_offset];
 
@@ -104,19 +104,21 @@ void *normal_end_req(algo_req* input){
 				printf("WRONG!\n");
 				exit(1);
 			}*/
+			inf_free_valueset(value, FS_MALLOC_W);
 			break;
 		case DATAW: //WRITE
+			printf("normal_end_req__WRITE");
 			break;
 		default:
+			printf("normal_end_req__default");
 			exit(1);
 			break;
 		}
 
 
 	}
-	
-	res->end_req(res);
 	inf_free_valueset(value, FS_MALLOC_W);
+	res->end_req(res);
 	free(params);
 	free(input);
 	return NULL;
