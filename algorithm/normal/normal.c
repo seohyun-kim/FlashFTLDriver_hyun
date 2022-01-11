@@ -89,13 +89,12 @@ void *normal_end_req(algo_req* input){
 	request *res=input->parents;
 
 	uint32_t ppa;
-	if ((res->key)%4 == 3) {
+
 		switch (input->type) {
 		case DATAR: //READ
 
 			//printf("%d", *(uint32_t*)res->value->value);
-			ppa = *(uint32_t*)(res->value->value[4*K*(res->key%4)]);
-
+			ppa = *(uint32_t*)&(res->value->value[4*K*((res->key)%4)]);
 			normal_cnt++;
 			if (normal_cnt > 100) {
 				printf("exit over 100. done!\n");
@@ -115,7 +114,7 @@ void *normal_end_req(algo_req* input){
 			exit(1);
 			break;
 		}
-	}
+
 	res->end_req(res);
 	free(params);
 	free(input);
