@@ -2,7 +2,10 @@
   "ExpandedNodes": [
     "",
     "\\algorithm",
-    "\\algorithm\\normal"
+    "\\algorithm\\normal",
+    "\\algorithm\\Page_ftl",
+    "\\include",
+    "\\include\\utils"
   ],
   "SelectedNode": "\\algorithm\\normal\\normal.c",
   "PreviewInSolutionExplorer": false
