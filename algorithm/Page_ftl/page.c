@@ -85,7 +85,7 @@ void page_destroy (lower_info* li, algorithm *algo){
 
 inline void send_user_req(request *const req, uint32_t type, ppa_t ppa,value_set *value){
 	/*you can implement your own structur for your specific FTL*/
-	if(type==DATAR){
+	if(type==DATAR){ //READ 중이라면,
 		fdriver_lock(&rb.read_buffer_lock);
 		if(ppa==rb.buffer_ppa){
 			if(test_key==req->key){
@@ -109,7 +109,7 @@ inline void send_user_req(request *const req, uint32_t type, ppa_t ppa,value_set
 	my_req->type=type;//DATAR means DATA reads, this affect traffics results
 	/*you note that after read a PPA, the callback function called*/
 
-
+	//
 	if(type==DATAR){
 		fdriver_lock(&rb.pending_lock);
 		rb_r_iter temp_r_iter=rb.issue_req->find(ppa);
@@ -124,7 +124,7 @@ inline void send_user_req(request *const req, uint32_t type, ppa_t ppa,value_set
 			return;
 		}
 	}
-
+	//
 	switch(type){
 		case DATAR:
 			page_ftl.li->read(ppa,PAGESIZE,value,my_req);
