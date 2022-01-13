@@ -1,3 +1,4 @@
+
 //  FTL Page Mapping (except GC)
 //	2022-01-12 
 
@@ -24,11 +25,14 @@ struct algorithm __normal = {
 
 
 uint32_t normal_create(lower_info* li, blockmanager* a, algorithm* algo) {
+	//static hyun_map *map_table = (hyun_map*)malloc(RANGE*sizeof(hyun_map));
+	//static uint32_t cnt_write_req = 0;
 	algo->li = li; //lower_info
 	return 1;
 }
 
 void normal_destroy(lower_info* li, algorithm* algo) {
+	//free(map_table);
 	//normal_cdf_print();
 
 	return;
@@ -37,8 +41,11 @@ void normal_destroy(lower_info* li, algorithm* algo) {
 int normal_cnt = 0;
 int rem_cnt = 0;
 
-static hyun_map map_table[RANGE]; //mapping table
-static uint32_t cnt_write_req=0; // 몇번째 요청?
+static hyun_map *map_table = (hyun_map*)malloc(RANGE*sizeof(hyun_map));
+static uint32_t cnt_write_req = 0;
+
+//static hyun_map map_table[RANGE]; //mapping table
+//static uint32_t cnt_write_req=0; // 몇번째 요청?
 
 
 uint32_t normal_get(request* const req) { // READ
@@ -103,6 +110,7 @@ void* normal_end_req(algo_req* input) {
 		normal_cnt++;
 		if (normal_cnt > 100) {
 			printf("exit over 100. done!\n");
+			free(map_table);
 			exit(0);
 		}
 		printf("lba:%u -> ppa:%u / data: %u\n", res->key, map_table[res->key].ppa, data);
