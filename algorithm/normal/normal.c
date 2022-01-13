@@ -35,6 +35,10 @@ void normal_destroy(lower_info* li, algorithm* algo) {
 int normal_cnt = 0;
 int rem_cnt = 0;
 
+static hyun_map* map_table = (hyun_map*)malloc(RANGE); //mapping table
+static uint32_t cnt_write_req; // 몇번째 요청?
+
+
 uint32_t normal_get(request* const req) { // READ
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
 
@@ -49,8 +53,8 @@ uint32_t normal_get(request* const req) { // READ
 }
 uint32_t normal_set(request* const req) { // WRITE
 
-	static hyun_map* map_table = (hyun_map*)calloc(RANGE); //mapping table
-	static uint32_t cnt_write_req; // 몇번째 요청?
+	//static hyun_map* map_table = (hyun_map*)malloc(RANGE); //mapping table
+	//static uint32_t cnt_write_req; // 몇번째 요청?
 
 	//mapping
 	map_table[req->key].ppa = cnt_write_req / 4;
@@ -70,7 +74,7 @@ uint32_t normal_set(request* const req) { // WRITE
 
 	my_req->type = DATAW;
 	my_req->param = (void*)params;
-	memcpy((uint32_t*)&(value->value[4 * K * (req->key % 4)]), &req->key, sizeof(req->key));
+	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->value, sizeof(req->value));
 
 	if (req->key % 4 == 3) {
 		__normal.li->write(cnt_write_req/4, PAGESIZE, value, my_req);//
@@ -94,15 +98,17 @@ void* normal_end_req(algo_req* input) {
 	uint32_t data;
 	switch (input->type) {
 	case DATAR: //READ
-		data = *(uint32_t*)&(res->value->value[K * (4*(map_table[req->key].ppa))+ (map_table[req->key].ppa_offset)]);
+		data = *(uint32_t*)&(res->value->value[K * (4*(map_table[res->key].ppa))+ (map_table[res->key].ppa_offset)]);
 		normal_cnt++;
 		if (normal_cnt > 100) {
 			printf("exit over 100. done!\n");
+			free(map_table);
 			exit(0);
 		}
-		printf("lba:%u -> ppa:%u / data: %u\n", res->key, 4 * (map_table[req->key].ppa)) + map_table[req->key].ppa_offset, data);
-		if (ppa != res->key) {
+		printf("lba:%u -> ppa:%u / data: %u\n", res->key, 4 * (map_table[res->key].ppa) + map_table[res->key].ppa_offset, data);
+		if (data != res->key) {
 			printf("WRONG!\n");
+			free(map_table);
 			exit(1);
 		}
 		break;
@@ -110,6 +116,7 @@ void* normal_end_req(algo_req* input) {
 		break;
 	default:
 		printf("normal_end_req__default");
+		free(map_table);
 		exit(1);
 		break;
 	}

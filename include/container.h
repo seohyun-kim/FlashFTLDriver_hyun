@@ -41,7 +41,7 @@ typedef struct hyun_map {
 	uint32_t cnt_write; // WRITE È£Ãâ È½¼ö
 	uint32_t cnt_read;// READ È£Ãâ È½¼ö
 
-}; hyun_map
+} hyun_map;
 
 typedef struct vectored_request{
 	uint32_t tag_id;
