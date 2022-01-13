@@ -35,7 +35,7 @@ void normal_destroy(lower_info* li, algorithm* algo) {
 int normal_cnt = 0;
 int rem_cnt = 0;
 
-static hyun_map* map_table[RANGE]; //mapping table
+static hyun_map map_table[RANGE]; //mapping table
 static uint32_t cnt_write_req=0; // 몇번째 요청?
 
 
@@ -48,21 +48,15 @@ uint32_t normal_get(request* const req) { // READ
 	my_req->param = (void*)params;
 	my_req->type = DATAR;
 
-	__normal.li->read((map_table[req->key]->ppa)/4, PAGESIZE, req->value, my_req);
+	__normal.li->read((map_table[req->key].ppa)/4, PAGESIZE, req->value, my_req);
 	//__normal.li->read(map_table[req->key].ppa, PAGESIZE, req->value, my_req);
 	return 1;
 }
 uint32_t normal_set(request* const req) { // WRITE
 
-	//static hyun_map* map_table = (hyun_map*)malloc(RANGE); //mapping table
-	//static uint32_t cnt_write_req; // 몇번째 요청?
-
 	//mapping
-	map_table[req->key]->ppa = cnt_write_req;
-
-	//map_table[req->key].ppa = cnt_write_req / 4;
-	//map_table[req->key].ppa_offset = cnt_write_req % 4;
-	//cnt_write_req++;
+	fdriver_lock(&(map_table[req->key].write_lock));
+	map_table[req->key].ppa = cnt_write_req;
 
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
 	algo_req* my_req = (algo_req*)malloc(sizeof(algo_req));
@@ -80,7 +74,7 @@ uint32_t normal_set(request* const req) { // WRITE
 	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key));
 
 	if (req->key % 4 == 3) {
-		__normal.li->write((map_table[req->key]->ppa)/4, PAGESIZE, value, my_req);//
+		__normal.li->write((map_table[req->key].ppa)/4, PAGESIZE, value, my_req);//
 		inf_free_valueset(value, FS_MALLOC_W);
 	}
 	else {
@@ -89,6 +83,7 @@ uint32_t normal_set(request* const req) { // WRITE
 		free(my_req);
 	}
 	cnt_write_req++;
+	fdriver_unlock(&(map_table[req->key].write_lock));
 
 	return 0;
 }
@@ -103,7 +98,7 @@ void* normal_end_req(algo_req* input) {
 	uint32_t data;
 	switch (input->type) {
 	case DATAR: //READ
-		data = *(uint32_t*)&(res->value->value[4*K*(map_table[res->key]->ppa %4)]);
+		data = *(uint32_t*)&(res->value->value[4*K*(map_table[res->key].ppa %4)]);
 		//data = *(uint32_t*)&(res->value->value[K * (4*(map_table[res->key].ppa))+ (map_table[res->key].ppa_offset)]);
 		normal_cnt++;
 		if (normal_cnt > 100) {
@@ -111,7 +106,7 @@ void* normal_end_req(algo_req* input) {
 			//free(map_table);
 			exit(0);
 		}
-		printf("lba:%u -> ppa:%u / data: %u\n", res->key, map_table[res->key]->ppa, data);
+		printf("lba:%u -> ppa:%u / data: %u\n", res->key, map_table[res->key].ppa, data);
 		//printf("lba:%u -> ppa:%u / data: %u\n", res->key, 4 * (map_table[res->key].ppa) + map_table[res->key].ppa_offset, data);
 		if (data != res->key) {
 			printf("WRONG!\n");
