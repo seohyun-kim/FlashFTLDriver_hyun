@@ -5,8 +5,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <pthread.h>
 #include "normal.h"
 #include "../../interface/interface.h"
+#include "../../include/sem_lock.h"
 #include "../../bench/bench.h"
 
 
@@ -49,13 +51,12 @@ uint32_t normal_get(request* const req) { // READ
 	my_req->type = DATAR;
 
 	__normal.li->read((map_table[req->key].ppa)/4, PAGESIZE, req->value, my_req);
-	//__normal.li->read(map_table[req->key].ppa, PAGESIZE, req->value, my_req);
 	return 1;
 }
 uint32_t normal_set(request* const req) { // WRITE
 
 	//mapping
-	fdriver_lock(&(map_table[req->key].write_lock));
+	//fdriver_lock(&(map_table[req->key].write_lock));
 	map_table[req->key].ppa = cnt_write_req;
 
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
@@ -68,14 +69,14 @@ uint32_t normal_set(request* const req) { // WRITE
 	if (cnt_write_req % 4 == 0) {
 		value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
 	}
-
+	params->value_buf = value;
 	my_req->type = DATAW;
 	my_req->param = (void*)params;
 	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key));
 
-	if (req->key % 4 == 3) {
+	if (cnt_write_req % 4 == 3) {
 		__normal.li->write((map_table[req->key].ppa)/4, PAGESIZE, value, my_req);//
-		inf_free_valueset(value, FS_MALLOC_W);
+		//inf_free_valueset(value, FS_MALLOC_W);
 	}
 	else {
 		req->end_req(req);
@@ -83,7 +84,7 @@ uint32_t normal_set(request* const req) { // WRITE
 		free(my_req);
 	}
 	cnt_write_req++;
-	fdriver_unlock(&(map_table[req->key].write_lock));
+	//fdriver_unlock(&(map_table[req->key].write_lock));
 
 	return 0;
 }
@@ -99,26 +100,23 @@ void* normal_end_req(algo_req* input) {
 	switch (input->type) {
 	case DATAR: //READ
 		data = *(uint32_t*)&(res->value->value[4*K*(map_table[res->key].ppa %4)]);
-		//data = *(uint32_t*)&(res->value->value[K * (4*(map_table[res->key].ppa))+ (map_table[res->key].ppa_offset)]);
 		normal_cnt++;
 		if (normal_cnt > 100) {
 			printf("exit over 100. done!\n");
-			//free(map_table);
 			exit(0);
 		}
 		printf("lba:%u -> ppa:%u / data: %u\n", res->key, map_table[res->key].ppa, data);
-		//printf("lba:%u -> ppa:%u / data: %u\n", res->key, 4 * (map_table[res->key].ppa) + map_table[res->key].ppa_offset, data);
 		if (data != res->key) {
 			printf("WRONG!\n");
-			//free(map_table);
 			exit(1);
 		}
 		break;
 	case DATAW: //WRITE
+		inf_free_valueset(params->value_buf, FS_MALLOC_W);
+
 		break;
 	default:
 		printf("normal_end_req__default");
-		//free(map_table);
 		exit(1);
 		break;
 	}
