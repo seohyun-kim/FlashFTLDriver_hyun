@@ -44,19 +44,26 @@ uint32_t normal_get(request* const req) { // READ
 	my_req->param = (void*)params;
 	my_req->type = DATAR;
 
-	__normal.li->read((req->key) / 4, PAGESIZE, req->value, my_req);
+	__normal.li->read(map_table[req->key].ppa, PAGESIZE, req->value, my_req);
 	return 1;
 }
 uint32_t normal_set(request* const req) { // WRITE
-	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
 
+	static hyun_map* map_table = (hyun_map*)calloc(RANGE); //mapping table
+	static uint32_t cnt_write_req; // 몇번째 요청?
+
+	//mapping
+	map_table[req->key].ppa = cnt_write_req / 4;
+	map_table[req->key].ppa_offset = cnt_write_req % 4;
+	cnt_write_req++;
+
+	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
 	algo_req* my_req = (algo_req*)malloc(sizeof(algo_req));
 	my_req->parents = req;
 	my_req->end_req = normal_end_req;
 
-	static value_set* value;
-
 	// value buffer
+	static value_set* value;
 	if (req->key % 4 == 0) {
 		value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
 	}
@@ -66,7 +73,7 @@ uint32_t normal_set(request* const req) { // WRITE
 	memcpy((uint32_t*)&(value->value[4 * K * (req->key % 4)]), &req->key, sizeof(req->key));
 
 	if (req->key % 4 == 3) {
-		__normal.li->write((req->key) / 4, PAGESIZE, value, my_req);//
+		__normal.li->write(cnt_write_req/4, PAGESIZE, value, my_req);//
 		inf_free_valueset(value, FS_MALLOC_W);
 	}
 	else {
@@ -84,16 +91,16 @@ void* normal_end_req(algo_req* input) {
 	normal_params* params = (normal_params*)(input->param);//
 	request* res = input->parents;
 
-	uint32_t ppa;
+	uint32_t data;
 	switch (input->type) {
 	case DATAR: //READ
-		ppa = *(uint32_t*)&(res->value->value[4 * K * ((res->key) % 4)]);
+		data = *(uint32_t*)&(res->value->value[K * (4*(map_table[req->key].ppa))+ (map_table[req->key].ppa_offset)]);
 		normal_cnt++;
 		if (normal_cnt > 100) {
 			printf("exit over 100. done!\n");
 			exit(0);
 		}
-		printf("lba:%u -> ppa:%u\n", res->key, ppa);
+		printf("lba:%u -> ppa:%u / data: %u\n", res->key, 4 * (map_table[req->key].ppa)) + map_table[req->key].ppa_offset, data);
 		if (ppa != res->key) {
 			printf("WRONG!\n");
 			exit(1);
