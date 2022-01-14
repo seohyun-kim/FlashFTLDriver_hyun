@@ -1,4 +1,5 @@
 
+
 //  FTL Page Mapping (except GC)
 //	2022-01-12 
 
@@ -28,6 +29,7 @@ uint32_t normal_create(lower_info* li, blockmanager* a, algorithm* algo) {
 	//static hyun_map *map_table = (hyun_map*)malloc(RANGE*sizeof(hyun_map));
 	//static uint32_t cnt_write_req = 0;
 	algo->li = li; //lower_info
+	algo->bm = a; //blockmanager
 	return 1;
 }
 
@@ -44,10 +46,6 @@ int rem_cnt = 0;
 static hyun_map *map_table = (hyun_map*)malloc(RANGE*sizeof(hyun_map));
 static uint32_t cnt_write_req = 0;
 
-//static hyun_map map_table[RANGE]; //mapping table
-//static uint32_t cnt_write_req=0; // 몇번째 요청?
-
-
 uint32_t normal_get(request* const req) { // READ
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
 
@@ -61,9 +59,7 @@ uint32_t normal_get(request* const req) { // READ
 	return 1;
 }
 uint32_t normal_set(request* const req) { // WRITE
-
 	//mapping
-	//fdriver_lock(&(map_table[req->key].write_lock));
 	map_table[req->key].ppa = cnt_write_req;
 
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
@@ -82,8 +78,7 @@ uint32_t normal_set(request* const req) { // WRITE
 	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key));
 
 	if (cnt_write_req % 4 == 3) {
-		__normal.li->write((map_table[req->key].ppa)/4, PAGESIZE, value, my_req);//
-		//inf_free_valueset(value, FS_MALLOC_W);
+		__normal.li->write((map_table[req->key].ppa)/4, PAGESIZE, value, my_req);
 	}
 	else {
 		req->end_req(req);
@@ -91,7 +86,6 @@ uint32_t normal_set(request* const req) { // WRITE
 		free(my_req);
 	}
 	cnt_write_req++;
-	//fdriver_unlock(&(map_table[req->key].write_lock));
 
 	return 0;
 }
@@ -120,6 +114,7 @@ void* normal_end_req(algo_req* input) {
 		}
 		break;
 	case DATAW: //WRITE
+		__normal.bm->bit_set(__normal.bm, map_table[res->key].ppa);
 		inf_free_valueset(params->value_buf, FS_MALLOC_W);
 
 		break;
