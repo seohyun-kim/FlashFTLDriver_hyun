@@ -60,35 +60,42 @@ uint32_t normal_get(request* const req) { // READ
 	return 1;
 }
 uint32_t normal_set(request* const req) { // WRITE
-	//mapping
-	map_table[req->key].ppa = cnt_write_req;
-
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
 	algo_req* my_req = (algo_req*)malloc(sizeof(algo_req));
-	__segment* gc_segment = (__segment*)malloc(sizeof(__segment)); //segment* 동적 할당
+	__segment* hyun_segment = (__segment*)malloc(sizeof(__segment)); //
 	my_req->parents = req;
 	my_req->end_req = normal_end_req;
 
+
+	if (map_table[req->key].ppa != NULL) { // 매핑이 이미 되어있다면(같은 LBA)
+		__normal.bm->bit_unset(__normal.bm, map_table[res->key].ppa); //기존 것 unset
+	}
+
+	if (__normal.bm->check_full(hyun_segment) == true) {
+		hyun_segment = __normal.bm->get_segment(__normal.bm, BLOCK_ACTIVE); //segment 할당
+	}
+	
+	static int32_t page_start_addr;
 	// value buffer
 	static value_set* value;
-	if (cnt_write_req % 4 == 0) {
+	if (cnt_write_req % L2PGAP == 0) {
 		value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
+		page_start_addr = __normal.bm->get_page_addr(hyun_segment); //page(16K단위)의 시작주소(일까? / N번째 페이지일까)
 	}
+
+	map_table[req->key].ppa = PAGESIZE *(page_start_addr +(cnt_write_req % L2PGAP));// mapping (N번째 페이지일까로 가정)
+	printf("page_start_addr: %d/ ppa : %u \n", page_start_addr, map_table[req->key].ppa);
+
 	params->value_buf = value;
 	my_req->type = DATAW;
 	my_req->param = (void*)params;
-	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key));
 
-	if (cnt_write_req % 4 == 3) {
-		if (__normal.bm->is_gc_needed(__normal.bm) == true) { // gc 필요하면 (NAND 꽉차면)
-			gc_segment = __normal.bm->get_segment(__normal.bm, BLOCK_ACTIVE); //사용 가능한 segment 리턴
-			//gc_segment->invalidate_piece_num 
-			__normal.li->write((gc_segment->seg_idx) / 4, PAGESIZE, value, my_req);
-		}
-		else {
-			__normal.li->write((map_table[req->key].ppa) / 4, PAGESIZE, value, my_req);
-		}
-		
+	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key)); //버퍼에 copy
+	__normal.bm->bit_set(__normal.bm, map_table[res->key].ppa); // WRITE할 때 하나씩 bitset
+
+
+	if (cnt_write_req % L2PGAP == 3) { //  모아서 쓰기
+		__normal.li->write((map_table[req->key].ppa) / 4, PAGESIZE, value, my_req);
 	}
 	else {
 		req->end_req(req);
@@ -124,7 +131,7 @@ void* normal_end_req(algo_req* input) {
 		}
 		break;
 	case DATAW: //WRITE
-		__normal.bm->bit_set(__normal.bm, map_table[res->key].ppa); // WRITE할 때 bitset
+	
 		inf_free_valueset(params->value_buf, FS_MALLOC_W);
 
 		break;
