@@ -1,5 +1,6 @@
 
 
+
 //  FTL Page Mapping (except GC)
 //	2022-01-12 
 
@@ -64,7 +65,7 @@ uint32_t normal_set(request* const req) { // WRITE
 
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
 	algo_req* my_req = (algo_req*)malloc(sizeof(algo_req));
-	__segment* gc_segment = (__segment*)malloc(siezof(__segment)); //segment* 동적 할당
+	__segment* gc_segment = (__segment*)malloc(sizeof(__segment)); //segment* 동적 할당
 	my_req->parents = req;
 	my_req->end_req = normal_end_req;
 
@@ -79,7 +80,7 @@ uint32_t normal_set(request* const req) { // WRITE
 	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key));
 
 	if (cnt_write_req % 4 == 3) {
-		if (__normal.bm->is_gc_needed == true) { // gc 필요하면 (NAND 꽉차면)
+		if (__normal.bm->is_gc_needed(__normal.bm) == true) { // gc 필요하면 (NAND 꽉차면)
 			gc_segment = __normal.bm->get_segment(__normal.bm, BLOCK_ACTIVE); //사용 가능한 segment 리턴
 			//gc_segment->invalidate_piece_num 
 			__normal.li->write((gc_segment->seg_idx) / 4, PAGESIZE, value, my_req);
@@ -112,9 +113,9 @@ void* normal_end_req(algo_req* input) {
 		data = *(uint32_t*)&(res->value->value[4*K*(map_table[res->key].ppa %4)]);
 		normal_cnt++;
 		if (normal_cnt > 100) {
-			printf("exit over 100. done!\n");
-			free(map_table);
-			exit(0);
+			//printf("exit over 100. done!\n");
+			//free(map_table);
+			//exit(0);
 		}
 		printf("lba:%u -> ppa:%u / data: %u\n", res->key, map_table[res->key].ppa, data);
 		if (data != res->key) {
