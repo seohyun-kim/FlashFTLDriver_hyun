@@ -38,9 +38,9 @@ typedef struct value_set{
 typedef struct hyun_map {
 	uint32_t ppa;
 	//uint8_t ppa_offset; // PAGE 내 0~3번째 중 어디인지
-	uint32_t cnt_write; // WRITE 호출 횟수
-	uint32_t cnt_read;// READ 호출 횟수
-	fdriver_lock_t write_lock;
+	//uint32_t cnt_write; // WRITE 호출 횟수
+	//uint32_t cnt_read;// READ 호출 횟수
+	//fdriver_lock_t write_lock;
 
 } hyun_map;
 

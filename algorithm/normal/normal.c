@@ -62,19 +62,21 @@ uint32_t normal_get(request* const req) { // READ
 uint32_t normal_set(request* const req) { // WRITE
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
 	algo_req* my_req = (algo_req*)malloc(sizeof(algo_req));
-	__segment* hyun_segment = (__segment*)malloc(sizeof(__segment)); //
+	static __segment* hyun_segment = (__segment*)malloc(sizeof(__segment)); //
 	my_req->parents = req;
 	my_req->end_req = normal_end_req;
 
 
-	if (map_table[req->key].ppa != NULL) { // 매핑이 이미 되어있다면(같은 LBA)
-		__normal.bm->bit_unset(__normal.bm, map_table[res->key].ppa); //기존 것 unset
+	if (map_table[req->key].ppa != 0) { // 매핑이 이미 되어있다면(같은 LBA)
+		__normal.bm->bit_unset(__normal.bm, map_table[req->key].ppa); //기존 것 unset
+		map_table[req->key].ppa = 0;
 	}
+	//printf("checkfull: %d\n", __normal.bm->check_full(hyun_segment) );
 
-	if (__normal.bm->check_full(hyun_segment) == true) {
+	if (__normal.bm->check_full(hyun_segment)) {
 		hyun_segment = __normal.bm->get_segment(__normal.bm, BLOCK_ACTIVE); //segment 할당
 	}
-	
+
 	static int32_t page_start_addr;
 	// value buffer
 	static value_set* value;
@@ -83,7 +85,9 @@ uint32_t normal_set(request* const req) { // WRITE
 		page_start_addr = __normal.bm->get_page_addr(hyun_segment); //page(16K단위)의 시작주소(일까? / N번째 페이지일까)
 	}
 
-	map_table[req->key].ppa = PAGESIZE *(page_start_addr +(cnt_write_req % L2PGAP));// mapping (N번째 페이지일까로 가정)
+	map_table[req->key].ppa = page_start_addr + LPAGESIZE * (cnt_write_req % L2PGAP);// mapping (N번째 페이지일까로 가정)
+
+	//map_table[req->key].ppa = PAGESIZE *(page_start_addr +(cnt_write_req % L2PGAP));// mapping (N번째 페이지일까로 가정)
 	printf("page_start_addr: %d/ ppa : %u \n", page_start_addr, map_table[req->key].ppa);
 
 	params->value_buf = value;
@@ -91,7 +95,7 @@ uint32_t normal_set(request* const req) { // WRITE
 	my_req->param = (void*)params;
 
 	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key)); //버퍼에 copy
-	__normal.bm->bit_set(__normal.bm, map_table[res->key].ppa); // WRITE할 때 하나씩 bitset
+	__normal.bm->bit_set(__normal.bm, map_table[req->key].ppa); // WRITE할 때 하나씩 bitset
 
 
 	if (cnt_write_req % L2PGAP == 3) { //  모아서 쓰기
