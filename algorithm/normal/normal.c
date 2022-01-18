@@ -34,14 +34,12 @@ uint32_t normal_create(lower_info* li, blockmanager* a, algorithm* algo) {
 	map_table = (hyun_map*)calloc(RANGE, sizeof(hyun_map));
 	algo->li = li; //lower_info
 	algo->bm = a; //blockmanager
-	hyun_segment = (__segment*)malloc(sizeof(__segment)); 
-	hyun_segment = a->get_segment(__normal.bm, BLOCK_ACTIVE); // first get_segment in create
+	hyun_segment = a->get_segment(a, BLOCK_ACTIVE); // first get_segment in create
 	return 1;
 }
 
 void normal_destroy(lower_info* li, algorithm* algo) {
 	free(map_table);
-	free(hyun_segment);
 	//normal_cdf_print();
 	return;
 }
