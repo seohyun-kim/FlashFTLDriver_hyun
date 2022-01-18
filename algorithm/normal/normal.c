@@ -36,12 +36,12 @@ uint32_t normal_create(lower_info* li, blockmanager* a, algorithm* algo) {
 	algo->bm = a; //blockmanager
 	hyun_segment = (__segment*)malloc(sizeof(__segment)); 
 	hyun_segment = a->get_segment(__normal.bm, BLOCK_ACTIVE); // first get_segment in create
-
 	return 1;
 }
 
 void normal_destroy(lower_info* li, algorithm* algo) {
 	free(map_table);
+	free(hyun_segment);
 	//normal_cdf_print();
 
 	return;
@@ -87,17 +87,17 @@ uint32_t normal_set(request* const req) { // WRITE
 		page_start_addr = __normal.bm->get_page_addr(hyun_segment); 
 	}
 
-	map_table[req->key].ppa =  LPAGESIZE* (L2PGAP*page_start_addr +(cnt_write_req % L2PGAP));
-	printf("page_start_addr: %d/ ppa : %u \n", page_start_addr, map_table[req->key].ppa);
+	map_table[req->key].ppa =  L2PGAP*page_start_addr +(cnt_write_req % L2PGAP);
+	//printf("page_start_addr: %d/ ppa : %u \n", page_start_addr, map_table[req->key].ppa);
 
 	params->value_buf = value;
 	my_req->type = DATAW;
 	my_req->param = (void*)params;
 
 	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key)); //버퍼에 copy
-	__normal.bm->bit_set(__normal.bm, map_table[req->key].ppa);
+	__normal.bm->bit_set(__normal.bm, map_table[req->key].ppa); //
 	map_table[req->key].is_lba_re_req = true;
-	printf("cnt_write_req : %d\n", cnt_write_req);
+	//printf("cnt_write_req : %d\n", cnt_write_req);
 	if (cnt_write_req % L2PGAP == 3) { //  모아서 쓰기
 		__normal.li->write((map_table[req->key].ppa) / 4, PAGESIZE, value, my_req);
 	}
@@ -122,12 +122,12 @@ void* normal_end_req(algo_req* input) {
 	switch (input->type) {
 	case DATAR: //READ
 		data = *(uint32_t*)&(res->value->value[4*K*(map_table[res->key].ppa %4)]);
-		normal_cnt++;
-		if (normal_cnt > 100) {
-			printf("exit over 100. done!\n");
-			free(map_table);
-			exit(0);
-		}
+		//normal_cnt++;
+		//if (normal_cnt > 100) {
+		//	printf("exit over 100. done!\n");
+		//	free(map_table);
+		//	exit(0);
+		//}
 		printf("lba:%u -> ppa:%u / data: %u\n", res->key, map_table[res->key].ppa, data);
 		if (data != res->key) {
 			printf("WRONG!\n");
