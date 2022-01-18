@@ -3,7 +3,7 @@
 
 
 //  FTL Page Mapping (except GC)
-//	2022-01-12 
+//	2022-01-12
 
 #include <string.h>
 #include <stdlib.h>
@@ -12,7 +12,6 @@
 #include <pthread.h>
 #include "normal.h"
 #include "../../interface/interface.h"
-#include "../../include/sem_lock.h"
 #include "../../bench/bench.h"
 
 
@@ -26,9 +25,10 @@ struct algorithm __normal = {
 	.remove = normal_remove
 };
 
-static hyun_map* map_table;
+static hyun_map* map_table; // mapping table
+static __segment* hyun_segment; // segment for blockmanager
 static uint32_t cnt_write_req;
-static __segment* hyun_segment; //
+
 
 uint32_t normal_create(lower_info* li, blockmanager* a, algorithm* algo) {
 	map_table = (hyun_map*)calloc(RANGE, sizeof(hyun_map));
@@ -43,18 +43,13 @@ void normal_destroy(lower_info* li, algorithm* algo) {
 	free(map_table);
 	free(hyun_segment);
 	//normal_cdf_print();
-
 	return;
 }
 
-int normal_cnt = 0;
-int rem_cnt = 0;
-
-
 uint32_t normal_get(request* const req) { // READ
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
-
 	algo_req* my_req = (algo_req*)malloc(sizeof(algo_req));
+
 	my_req->parents = req;
 	my_req->end_req = normal_end_req;
 	my_req->param = (void*)params;
@@ -63,42 +58,43 @@ uint32_t normal_get(request* const req) { // READ
 	__normal.li->read((map_table[req->key].ppa)/4, PAGESIZE, req->value, my_req);
 	return 1;
 }
+
 uint32_t normal_set(request* const req) { // WRITE
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
 	algo_req* my_req = (algo_req*)malloc(sizeof(algo_req));
+	static int32_t page_start_addr; // return value of [get_page_addr]
+	static value_set* value; // value buffer
+
 	my_req->parents = req;
 	my_req->end_req = normal_end_req;
+	params->value_buf = value;
+	my_req->type = DATAW;
+	my_req->param = (void*)params;
+
 
 	if (map_table[req->key].is_lba_re_req == true){ // if same lba re-req
 		__normal.bm->bit_unset(__normal.bm, map_table[req->key].ppa);  // origin mem unset
 	}
 
-	if (__normal.bm->check_full(hyun_segment)) { // if segment is full
-		hyun_segment = __normal.bm->get_segment(__normal.bm, BLOCK_ACTIVE); // get segment
+	if (__normal.bm->check_full(hyun_segment)) { // check if segment is full
+		hyun_segment = __normal.bm->get_segment(__normal.bm, BLOCK_ACTIVE); // get new segment
 	}
 
-	//printf("checkfull: %d\n", __normal.bm->check_full(hyun_segment) );
-
-	static int32_t page_start_addr;
-	// value buffer
-	static value_set* value;
-	if (cnt_write_req % L2PGAP == 0) {
+	if (cnt_write_req % L2PGAP == 0) { // Once per 4 times (every first in 4)
 		value = inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
 		page_start_addr = __normal.bm->get_page_addr(hyun_segment); 
 	}
 
+	// write ppa in map
 	map_table[req->key].ppa =  L2PGAP*page_start_addr +(cnt_write_req % L2PGAP);
-	//printf("page_start_addr: %d/ ppa : %u \n", page_start_addr, map_table[req->key].ppa);
 
-	params->value_buf = value;
-	my_req->type = DATAW;
-	my_req->param = (void*)params;
+	//copy in buffer (to collect four at a time)
+	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key)); 
 
-	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key)); //버퍼에 copy
-	__normal.bm->bit_set(__normal.bm, map_table[req->key].ppa); //
-	map_table[req->key].is_lba_re_req = true;
-	//printf("cnt_write_req : %d\n", cnt_write_req);
-	if (cnt_write_req % L2PGAP == 3) { //  모아서 쓰기
+	__normal.bm->bit_set(__normal.bm, map_table[req->key].ppa); // bit set
+	map_table[req->key].is_lba_re_req = true; // flag : LBA called
+
+	if (cnt_write_req % L2PGAP == 3) { // Once per 4 times (every last in 4)
 		__normal.li->write((map_table[req->key].ppa) / 4, PAGESIZE, value, my_req);
 	}
 	else {
@@ -122,12 +118,6 @@ void* normal_end_req(algo_req* input) {
 	switch (input->type) {
 	case DATAR: //READ
 		data = *(uint32_t*)&(res->value->value[4*K*(map_table[res->key].ppa %4)]);
-		//normal_cnt++;
-		//if (normal_cnt > 100) {
-		//	printf("exit over 100. done!\n");
-		//	free(map_table);
-		//	exit(0);
-		//}
 		printf("lba:%u -> ppa:%u / data: %u\n", res->key, map_table[res->key].ppa, data);
 		if (data != res->key) {
 			printf("WRONG!\n");
@@ -135,12 +125,9 @@ void* normal_end_req(algo_req* input) {
 		}
 		break;
 	case DATAW: //WRITE
-	
 		inf_free_valueset(params->value_buf, FS_MALLOC_W);
-
 		break;
 	default:
-		printf("normal_end_req__default");
 		exit(1);
 		break;
 	}
