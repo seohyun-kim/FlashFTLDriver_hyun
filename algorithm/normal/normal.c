@@ -1,6 +1,7 @@
 
 
 
+
 //  FTL Page Mapping (except GC)
 //	2022-01-12 
 
@@ -70,7 +71,7 @@ uint32_t normal_set(request* const req) { // WRITE
 	my_req->end_req = normal_end_req;
 
 
-	if (map_table[req->key].is_lba_re_req == true) // if same lba re-req
+	if (map_table[req->key].is_lba_re_req == true){ // if same lba re-req
 		__normal.bm->bit_unset(__normal.bm, map_table[req->key].ppa);  // origin mem unset
 		//map_table[req->key].ppa = 0;
 	}
@@ -89,7 +90,7 @@ uint32_t normal_set(request* const req) { // WRITE
 		page_start_addr = __normal.bm->get_page_addr(hyun_segment); 
 	}
 
-	map_table[req->key].ppa = LPAGESIZE * (L2PGAP*page_start_addr +(cnt_write_req % L2PGAP));
+	map_table[req->key].ppa = LPAGESIZE* (L2PGAP*page_start_addr +(cnt_write_req % L2PGAP));
 	printf("page_start_addr: %d/ ppa : %u \n", page_start_addr, map_table[req->key].ppa);
 
 	params->value_buf = value;
@@ -97,8 +98,8 @@ uint32_t normal_set(request* const req) { // WRITE
 	my_req->param = (void*)params;
 
 	memcpy((uint32_t*)&(value->value[4 * K * (cnt_write_req % 4)]), &req->key, sizeof(req->key)); //버퍼에 copy
-	__normal.bm->bit_set(__normal.bm, map_table[req->key].ppa); // WRITE할 때 하나씩 bitset
-
+	__normal.bm->bit_set(__normal.bm, map_table[req->key].ppa);
+	map_table[req->key].is_lba_re_req = true;
 
 	if (cnt_write_req % L2PGAP == 3) { //  모아서 쓰기
 		__normal.li->write((map_table[req->key].ppa) / 4, PAGESIZE, value, my_req);
