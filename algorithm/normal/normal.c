@@ -60,7 +60,7 @@ uint32_t normal_get(request* const req) { // READ
 uint32_t normal_set(request* const req) { // WRITE
 	normal_params* params = (normal_params*)malloc(sizeof(normal_params));
 	algo_req* my_req = (algo_req*)malloc(sizeof(algo_req));
-	static int32_t page_start_addr; // return value of [get_page_addr]
+	static int32_t page_start_addr; // return value of [get_page_addr], current write loc
 	static value_set* value; // value buffer
 
 	my_req->parents = req;
@@ -68,6 +68,48 @@ uint32_t normal_set(request* const req) { // WRITE
 	params->value_buf = value;
 	my_req->type = DATAW;
 	my_req->param = (void*)params;
+
+	
+
+	// ===================
+	// Garbage Collection
+	if (__normal.bm->is_gc_needed(__normal.bm) == true) {
+		// 1. Invalidate page 많은 block(segment)선택 : [get_gc_target]
+		// 2. valid data를 현재 위치의 다음 공간에 [Invalidate piece num] 만큼 WRITE
+		// 3. 원래 공간 ERASE 
+		//	- bm->bit_unset 
+		//	- target_segment->blocks[i]->bitset ? 해당 블록만 지우는 함수 뭔지 모르겠음
+		// 4. mapping table update
+
+		__gsegment* target_segment = __normal.bm->get_gc_target(__normal.bm);
+		uint32_t current_write_loc = L2PGAP * page_start_addr + (cnt_write_req % L2PGAP);
+
+		// WRITE (valid data copy)
+		for (int i = 0; i < target_segment->validate_piece_num; i++)
+		{
+			__normal.li->write(page_start_addr, PAGESIZE, 타겟블록원래값, my_req); // ?
+			// WRITE 16K단위
+		}
+
+		// ERASE garbage segment
+		for (int i = 0; i < BPS; i++) // BPS가 세그먼트 내 블록 수 인가?
+		{
+			__normal.bm->bit_unset(__normal.bm, target_segment->blocks[i]->block_idx);
+			// seg_idx 가 gc타겟 되는 세그먼트의 원래 LBA인가?
+
+			// ERASE : set all blocks - bit 1
+			memset(target_segment->blocks[i]->bitset, 1, _PPB * L2PGAP / 8);
+
+			// update mapping table
+			map_table[target_segment->seg_idx].ppa = current_write_loc;
+			current_write_loc++;
+		}
+		
+		cnt_write_req += target_segment->validate_piece_num;
+
+	}
+
+	// ===================
 
 
 	if (map_table[req->key].is_lba_re_req == true){ // if same lba re-req
