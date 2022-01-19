@@ -75,37 +75,30 @@ uint32_t normal_set(request* const req) { // WRITE
 	// Garbage Collection
 	if (__normal.bm->is_gc_needed(__normal.bm) == true) {
 		// 1. Invalidate page 많은 block(segment)선택 : [get_gc_target]
-		// 2. valid data를 현재 위치의 다음 공간에 [Invalidate piece num] 만큼 WRITE
-		// 3. 원래 공간 ERASE 
-		//	- bm->bit_unset 
-		//	- target_segment->blocks[i]->bitset ? 해당 블록만 지우는 함수 뭔지 모르겠음
-		// 4. mapping table update
+		// 2. for_each_page_in_seg 돌면서 segment 내 valid data의 page 주소 찾음
+		// 3. valid data를 BLOCK_RESERVE 공간에 memcpy
+		// 4. 원래 segment 전체 ERASE : [trim_segment(bm,target)]
+		// 5. ERASE 된 공간을 다음 GC에 사용할 BLOCK_RESERVE로 넘겨줌
+		// 6. mapping table update
 
 		__gsegment* target_segment = __normal.bm->get_gc_target(__normal.bm);
-		uint32_t current_write_loc = L2PGAP * page_start_addr + (cnt_write_req % L2PGAP);
 
-		// WRITE (valid data copy)
-		for (int i = 0; i < target_segment->validate_piece_num; i++)
-		{
-			__normal.li->write(page_start_addr, PAGESIZE, 타겟블록원래값, my_req); // ?
-			// WRITE 16K단위
-		}
-
-		// ERASE garbage segment
-		for (int i = 0; i < BPS; i++) // BPS가 세그먼트 내 블록 수 인가?
-		{
-			__normal.bm->bit_unset(__normal.bm, target_segment->blocks[i]->block_idx);
-			// seg_idx 가 gc타겟 되는 세그먼트의 원래 LBA인가?
-
-			// ERASE : set all blocks - bit 1
-			memset(target_segment->blocks[i]->bitset, 1, _PPB * L2PGAP / 8);
-
-			// update mapping table
-			map_table[target_segment->seg_idx].ppa = current_write_loc;
-			current_write_loc++;
-		}
-		
-		cnt_write_req += target_segment->validate_piece_num;
+		///*by using this for loop, you can traversal all page in block*/
+		//for_each_page_in_seg(target, page, bidx, pidx) {
+		//	//this function check the page is valid or not
+		//	bool should_read = false;
+		//	for (uint32_t i = 0; i < L2PGAP; i++) {
+		//		if (bm->is_invalid_piece(bm, page * L2PGAP + i)) continue;
+		//		else {
+		//			should_read = true;
+		//			break;
+		//		}
+		//	}
+		//	if (should_read) {
+		//		gv = send_req(page, GCDR, NULL);
+		//		list_insert(temp_list, (void*)gv);
+		//	}
+		//}
 
 	}
 
