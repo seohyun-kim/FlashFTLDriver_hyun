@@ -13,7 +13,7 @@
 // 6. mapping table update
 
 
-gc_value* send_req(uint32_t ppa, uint8_t type, value_set* value) {
+gc_value* send_req(uint32_t ppa, uint8_t type, value_set* value, algorithm* __normal) {
 	algo_req* my_req = (algo_req*)malloc(sizeof(algo_req));
 	my_req->parents = NULL;
 	my_req->end_req = page_gc_end_req;//call back function for GC
@@ -30,20 +30,20 @@ gc_value* send_req(uint32_t ppa, uint8_t type, value_set* value) {
 		my_req->type_lower = 0;
 		/*when read a value, you can assign free value by this function*/
 		res->value = inf_get_valueset(NULL, FS_MALLOC_R, PAGESIZE);
-		page_ftl.li->read(ppa, PAGESIZE, res->value, my_req);
+		__normal->li->read(ppa, PAGESIZE, res->value, my_req);
 		break;
 	case GCDW:
 		res = (gc_value*)malloc(sizeof(gc_value));
 		res->value = value;
 		my_req->param = (void*)res;
-		__normal.li->write(ppa, PAGESIZE, res->value, my_req);
+		__normal->li->write(ppa, PAGESIZE, res->value, my_req);
 		break;
 	}
 	return res;
 }
 
 
-void travel_page_in_segment(struct algorithm* __normal, __gsegment* _target_segment, __segment* __reserve_segment) {
+void travel_page_in_segment(algorithm* __normal, __gsegment* _target_segment, __segment* __reserve_segment) {
 
 	uint32_t page, bidx, pidx;
 	gc_value* gv;
@@ -60,7 +60,7 @@ void travel_page_in_segment(struct algorithm* __normal, __gsegment* _target_segm
 			}
 		}
 		if (should_read) { // valid piece
-			gv = send_req(page, GCDR, NULL);
+			gv = send_req(page, GCDR, NULL, __normal);
 			list_insert(temp_list, (void*)gv);// temp_list¿¡ append
 		}
 	}
@@ -74,10 +74,10 @@ void travel_page_in_segment(struct algorithm* __normal, __gsegment* _target_segm
 void run_hyun_gc(algorithm* __normal) {
 
 	// get target segment for gc
-	__gsegment* target_segment = __normal->bm->get_gc_target(__normal.bm);
+	__gsegment* target_segment = __normal->bm->get_gc_target(__normal->bm);
 
 	// get reserve segment for gc
-	__segment* reserve_segment = __normal->bm->get_segment(__normal.bm, BLOCK_RESERVE);
+	__segment* reserve_segment = __normal->bm->get_segment(__normal->bm, BLOCK_RESERVE);
 
 	// processing  per page in segment
 	// (find valid page -> copy value -> update map table)

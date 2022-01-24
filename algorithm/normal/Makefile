@@ -1,5 +1,6 @@
 SRCS +=\
 	   normal.c\
+	   hyun_gc.c\
 
 OBJS :=\
 	$(patsubst %.c,%.o,$(SRCS))\
