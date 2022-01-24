@@ -43,7 +43,7 @@ gc_value* send_req(uint32_t ppa, uint8_t type, value_set* value) {
 }
 
 
-void travel_page_in_segment(algorithm* __normal, __gsement* _target_segment, __segment* __reserve_segment) {
+void travel_page_in_segment(struct algorithm* __normal, __gsegment* _target_segment, __segment* __reserve_segment) {
 
 	uint32_t page, bidx, pidx;
 	gc_value* gv;
@@ -71,7 +71,7 @@ void travel_page_in_segment(algorithm* __normal, __gsement* _target_segment, __s
 
 
 
-void run_hyun_gc(algorithm* __normal) {
+void run_hyun_gc(algorithm __normal) {
 
 	// get target segment for gc
 	__gsegment* target_segment = __normal.bm->get_gc_target(__normal.bm);

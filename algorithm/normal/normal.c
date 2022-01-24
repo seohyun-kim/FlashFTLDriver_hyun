@@ -16,6 +16,7 @@
 #include "hyun_gc.h"
 
 
+
 extern MeasureTime mt;
 struct algorithm __normal = {
 	.argument_set = NULL,
