@@ -7,10 +7,10 @@ typedef struct gc_value {
 	bool isdone;
 }gc_value;
 
-void run_hyun_gc(struct algorithm __normal);
+void run_hyun_gc(algorithm*);
 
-void* page_gc_end_req(algo_req* input);
-gc_value* send_req(uint32_t ppa, uint8_t type, value_set* value);
-void travel_page_in_segment(algorithm* __normal, __gsegment* _target_segment, __segment* __reserve_segment);
+void* page_gc_end_req(algo_req*);
+gc_value* send_req(uint32_t , uint8_t , value_set* );
+void travel_page_in_segment(algorithm* , __gsegment* , __segment*);
 
 //void run_hyun_gc(algorithm* __normal);

@@ -16,7 +16,6 @@
 #include "hyun_gc.h"
 
 
-
 extern MeasureTime mt;
 struct algorithm __normal = {
 	.argument_set = NULL,
@@ -71,9 +70,16 @@ uint32_t normal_set(request* const req) { // WRITE
 	my_req->type = DATAW;
 	my_req->param = (void*)params;
 
+	//test
+	if(cnt_write_req == 100){
+		run_hyun_gc(& __normal);
+
+	}
+
 	if (__normal.bm->is_gc_needed(__normal.bm) == true) {
-		printf("\n==============GC start ===============\n");
-		run_hyun_gc(__normal);
+		printf("\n============== GC start ===============\n");
+		exit(1);
+		//run_hyun_gc(& __normal);
 	}
 
 	if (map_table[req->key].is_lba_re_req == true){ // if same lba re-req
@@ -122,7 +128,7 @@ void* normal_end_req(algo_req* input) {
 	switch (input->type) {
 	case DATAR: //READ
 		data = *(uint32_t*)&(res->value->value[4*K*(map_table[res->key].ppa %4)]);
-		printf("lba:%u -> ppa:%u / data: %u\n", res->key, map_table[res->key].ppa, data);
+		//printf("lba:%u -> ppa:%u / data: %u\n", res->key, map_table[res->key].ppa, data);
 		if (data != res->key) {
 			printf("WRONG!\n");
 			exit(1);

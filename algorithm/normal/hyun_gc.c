@@ -71,23 +71,23 @@ void travel_page_in_segment(struct algorithm* __normal, __gsegment* _target_segm
 
 
 
-void run_hyun_gc(algorithm __normal) {
+void run_hyun_gc(algorithm* __normal) {
 
 	// get target segment for gc
-	__gsegment* target_segment = __normal.bm->get_gc_target(__normal.bm);
+	__gsegment* target_segment = __normal->bm->get_gc_target(__normal.bm);
 
 	// get reserve segment for gc
-	__segment* reserve_segment = __normal.bm->get_segment(__normal.bm, BLOCK_RESERVE);
+	__segment* reserve_segment = __normal->bm->get_segment(__normal.bm, BLOCK_RESERVE);
 
 	// processing  per page in segment
 	// (find valid page -> copy value -> update map table)
 	travel_page_in_segment(__normal, target_segment, reserve_segment);
 	
 	// ERADSE target segment
-	__normal.bm->trim_segment(__normal.bm, target_segment);
+	__normal->bm->trim_segment(__normal->bm, target_segment);
 
 	// change [ RESERVE BLOCK -> ACTIVE BLOCK ]
-	__normal.bm->change_reserve_to_active(__normal.bm, reserve_segment);
+	__normal->bm->change_reserve_to_active(__normal->bm, reserve_segment);
 
 	// change [ gc target -> RESERVE BLOCK ]
 
