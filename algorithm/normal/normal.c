@@ -13,6 +13,7 @@
 #include "normal.h"
 #include "../../interface/interface.h"
 #include "../../bench/bench.h"
+#include "hyun_gc.h"
 
 
 extern MeasureTime mt;
@@ -69,41 +70,10 @@ uint32_t normal_set(request* const req) { // WRITE
 	my_req->type = DATAW;
 	my_req->param = (void*)params;
 
-	
-
-	// ===================
-	// Garbage Collection
 	if (__normal.bm->is_gc_needed(__normal.bm) == true) {
-		// 1. Invalidate page 많은 block(segment)선택 : [get_gc_target]
-		// 2. for_each_page_in_seg 돌면서 segment 내 valid data의 page 주소 찾음
-		// 3. valid data를 BLOCK_RESERVE 공간에 memcpy
-		// 4. 원래 segment 전체 ERASE : [trim_segment(bm,target)]
-		// 5. ERASE 된 공간을 다음 GC에 사용할 BLOCK_RESERVE로 넘겨줌
-		// 6. mapping table update
-
-		__gsegment* target_segment = __normal.bm->get_gc_target(__normal.bm);
-
-		///*by using this for loop, you can traversal all page in block*/
-		//for_each_page_in_seg(target, page, bidx, pidx) {
-		//	//this function check the page is valid or not
-		//	bool should_read = false;
-		//	for (uint32_t i = 0; i < L2PGAP; i++) {
-		//		if (bm->is_invalid_piece(bm, page * L2PGAP + i)) continue;
-		//		else {
-		//			should_read = true;
-		//			break;
-		//		}
-		//	}
-		//	if (should_read) {
-		//		gv = send_req(page, GCDR, NULL);
-		//		list_insert(temp_list, (void*)gv);
-		//	}
-		//}
-
+		printf("\n==============GC start ===============\n");
+		run_hyun_gc(__normal);
 	}
-
-	// ===================
-
 
 	if (map_table[req->key].is_lba_re_req == true){ // if same lba re-req
 		__normal.bm->bit_unset(__normal.bm, map_table[req->key].ppa);  // origin mem unset
