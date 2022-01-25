@@ -27,7 +27,7 @@ gc_value* send_req(uint32_t ppa, uint8_t type, value_set *value){
 	my_req->parents=NULL;
 	my_req->end_req=page_gc_end_req;//call back function for GC
 	my_req->type=type;
-	
+
 	/*for gc, you should assign free space for reading valid data*/
 	gc_value *res=NULL;
 	switch(type){
@@ -52,6 +52,7 @@ gc_value* send_req(uint32_t ppa, uint8_t type, value_set *value){
 }
 
 void new_do_gc(){
+	printf("new do gc called\n");
 	/*this function return a block which have the most number of invalidated page*/
 	__gsegment *target=page_ftl.bm->get_gc_target(page_ftl.bm);
 	uint32_t page;
@@ -118,6 +119,7 @@ next:
 }
 
 void do_gc(){
+	printf("do GC called !!!!!!!!!!!! \n");
 	/*this function return a block which have the most number of invalidated page*/
 	__gsegment *target=page_ftl.bm->get_gc_target(page_ftl.bm);
 	uint32_t page;

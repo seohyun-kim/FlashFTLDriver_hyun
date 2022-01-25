@@ -32,6 +32,7 @@ static uint32_t cnt_write_req;
 
 
 uint32_t normal_create(lower_info* li, blockmanager* a, algorithm* algo) {
+	//printf("RANGE:%u\n",RANGE );
 	map_table = (hyun_map*)calloc(RANGE, sizeof(hyun_map));
 	algo->li = li; //lower_info
 	algo->bm = a; //blockmanager
@@ -70,8 +71,8 @@ uint32_t normal_set(request* const req) { // WRITE
 	my_req->type = DATAW;
 	my_req->param = (void*)params;
 
-	/*test
-	if(cnt_write_req == 100){
+	/*// test
+	if(cnt_write_req == 10){
 		printf("call GC\n");
 		run_hyun_gc(& __normal);
 
@@ -83,7 +84,8 @@ uint32_t normal_set(request* const req) { // WRITE
 		//exit(1);
 		run_hyun_gc(& __normal);
 	}
-
+	
+	//printf("req->key:%u\n", req->key);
 	if (map_table[req->key].is_lba_re_req == true){ // if same lba re-req
 		__normal.bm->bit_unset(__normal.bm, map_table[req->key].ppa);  // origin mem unset
 	}
