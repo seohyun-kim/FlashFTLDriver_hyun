@@ -5,8 +5,8 @@
     "\\algorithm\\normal",
     "\\algorithm\\Page_ftl",
     "\\include",
-    "\\include\\utils"
+    "\\interface"
   ],
-  "SelectedNode": "\\algorithm\\normal\\normal.c",
+  "SelectedNode": "\\algorithm\\normal\\hyun_gc.c",
   "PreviewInSolutionExplorer": false
 }

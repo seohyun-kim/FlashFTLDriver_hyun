@@ -77,8 +77,9 @@ uint32_t normal_set(request* const req) { // WRITE
 
 	}*/
 
+	// is_gc_needed means -> free segment size == 0 
 	if (__normal.bm->is_gc_needed(__normal.bm) == true) {
-		printf("\n============== GC 안 불리는데  ===============\n");
+		printf("\n============== GC start  ===============\n");
 		//exit(1);
 		run_hyun_gc(& __normal);
 	}
