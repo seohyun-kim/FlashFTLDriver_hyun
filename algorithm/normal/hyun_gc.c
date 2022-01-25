@@ -47,6 +47,8 @@ void travel_page_in_segment(algorithm* __normal, __gsegment* _target_segment, __
 
 	uint32_t page, bidx, pidx;
 	gc_value* gv;
+	align_gc_buffer g_buffer;
+	blockmanager* bm = __normal->bm;
 	list* temp_list = list_init();
 
 	for_each_page_in_seg(_target_segment, page, bidx, pidx) {
@@ -65,6 +67,52 @@ void travel_page_in_segment(algorithm* __normal, __gsegment* _target_segment, __
 		}
 	}
 
+	// ===========================================================
+
+	li_node* now, * nxt;
+	g_buffer.idx = 0;
+	KEYT* lbas;
+	while (temp_list->size) {
+		for_each_list_node_safe(temp_list, now, nxt) {
+
+			gv = (gc_value*)now->data;
+			if (!gv->isdone) continue;
+			lbas = (KEYT*)bm->get_oob(bm, gv->ppa);
+			for (uint32_t i = 0; i < L2PGAP; i++) {
+				if (bm->is_invalid_piece(bm, gv->ppa * L2PGAP + i)) continue;
+				memcpy(&g_buffer.value[g_buffer.idx * LPAGESIZE], &gv->value->value[i * LPAGESIZE], LPAGESIZE);
+				g_buffer.key[g_buffer.idx] = lbas[i];
+
+				g_buffer.idx++;
+
+				if (g_buffer.idx == L2PGAP) {
+					uint32_t res = page_map_gc_update(g_buffer.key, L2PGAP);
+					validate_ppa(res, g_buffer.key, g_buffer.idx);
+					send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
+					g_buffer.idx = 0;
+				}
+			}
+
+			inf_free_valueset(gv->value, FS_MALLOC_R);
+			free(gv);
+			//you can get lba from OOB(spare area) in physicall page
+			list_delete_node(temp_list, now);
+		}
+	}
+
+	if (g_buffer.idx != 0) {
+		uint32_t res = page_map_gc_update(g_buffer.key, g_buffer.idx);
+		validate_ppa(res, g_buffer.key, g_buffer.idx);
+		send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
+		g_buffer.idx = 0;
+	}
+
+	bm->trim_segment(bm, target); //erase a block
+	p->active = p->reserve;//make reserved to active block
+	bm->change_reserve_to_active(bm, p->reserve);
+	p->reserve = bm->get_segment(bm, BLOCK_RESERVE); //get new reserve block from block_manager
+
+	list_free(temp_list);
 
 }
 
@@ -72,6 +120,9 @@ void travel_page_in_segment(algorithm* __normal, __gsegment* _target_segment, __
 
 
 void run_hyun_gc(algorithm* __normal) {
+
+	pm_body* p = (pm_body*)__normal->algo_body;
+
 
 	// get target segment for gc
 	__gsegment* target_segment = __normal->bm->get_gc_target(__normal->bm);
@@ -84,10 +135,10 @@ void run_hyun_gc(algorithm* __normal) {
 	travel_page_in_segment(__normal, target_segment, reserve_segment);
 	
 	// ERADSE target segment
-	__normal->bm->trim_segment(__normal->bm, target_segment);
+	//__normal->bm->trim_segment(__normal->bm, target_segment);
 
 	// change [ RESERVE BLOCK -> ACTIVE BLOCK ]
-	__normal->bm->change_reserve_to_active(__normal->bm, reserve_segment);
+	//__normal->bm->change_reserve_to_active(__normal->bm, reserve_segment);
 
 	// change [ gc target -> RESERVE BLOCK ]
 
@@ -110,3 +161,4 @@ void* page_gc_end_req(algo_req* input) {
 	free(input);
 	return NULL;
 }
+
