@@ -13,20 +13,22 @@
 // 5. ERASE 된 공간을 다음 GC에 사용할 BLOCK_RESERVE로 넘겨줌
 // 6. mapping table update
 
-/*
+static algorithm* __normal = NULL;
 
-uint32_t page_map_gc_update(KEYT* lba, uint32_t idx, algorithm* __normal) {
+
+
+uint32_t page_map_gc_update(KEYT* lba, uint32_t idx) {
 	uint32_t res = 0;
 	pm_body* p = (pm_body*)__normal->algo_body;
 
 	// when the gc phase, It should get a page from the reserved block
 	res = __normal->bm->get_page_addr(p->reserve);
 	uint32_t old_ppa, new_ppa;
-	for (uint32_t i = 0; i < idx; i++) {
+	for (uint32_t i = 0; i < idx; i++) { // L2PGAP times
 		KEYT t_lba = lba[i];
 		if (p->mapping[t_lba] != UINT_MAX) {
 			// when mapping was updated, the old one is checked as a inavlid
-			//invalidate_ppa(p->mapping[t_lba]);
+			// invalidate_ppa(p->mapping[t_lba]);
 		}
 		// mapping update
 		p->mapping[t_lba] = res * L2PGAP + i;
@@ -34,12 +36,24 @@ uint32_t page_map_gc_update(KEYT* lba, uint32_t idx, algorithm* __normal) {
 			printf("test_key(%u) is set to %u in gc\n", test_key, res * L2PGAP + i);
 		}
 	}
-
 	return res;
 }
-*/
 
-gc_value* send_req(uint32_t ppa, uint8_t type, value_set* value, algorithm* __normal) {
+void invalidate_ppa(uint32_t t_ppa) {
+	/*when the ppa is invalidated this function must be called*/
+	__normal->bm->bit_unset(__normal->bm, t_ppa);
+}
+
+void validate_ppa(uint32_t ppa, KEYT* lbas, uint32_t max_idx) {
+	/*when the ppa is validated this function must be called*/
+	for (uint32_t i = 0; i < max_idx; i++) {
+		__normal->bm->bit_set(__normal->bm, ppa * L2PGAP + i);
+	}
+	/*this function is used for write some data to OOB(spare area) for reverse mapping*/
+	__normal->bm->set_oob(__normal->bm, (char*)lbas, sizeof(KEYT) * max_idx, ppa);
+}
+
+gc_value* send_req(uint32_t ppa, uint8_t type, value_set* value) {
 	algo_req* my_req = (algo_req*)malloc(sizeof(algo_req));
 	my_req->parents = NULL;
 	my_req->end_req = page_gc_end_req;//call back function for GC
@@ -69,8 +83,9 @@ gc_value* send_req(uint32_t ppa, uint8_t type, value_set* value, algorithm* __no
 }
 
 
-void travel_page_in_segment(algorithm* __normal, __gsegment* _target_segment, __segment* __reserve_segment) {
+void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __segment* __reserve_segment) {
 
+	__normal = _normal;
 	uint32_t page, bidx, pidx;
 	gc_value* gv;
 	align_gc_buffer g_buffer;
@@ -89,39 +104,41 @@ void travel_page_in_segment(algorithm* __normal, __gsegment* _target_segment, __
 		}
 		if (should_read) { // valid piece
 			gv = send_req(page, GCDR, NULL, __normal);
-			//list_insert(temp_list, (void*)gv);// temp_list에 append
-			//printf("page : %u | list : %u\n",page, (uint32_t*)temp_list->head->data);
+			list_insert(temp_list, (void*)gv);// temp_list에 append
 
 		}
 	}
 
-	//__normal->bm->trim_segment(__normal->bm, _target_segment);
-
-	//__normal->bm->change_reserve_to_active(__normal->bm, __reserve_segment);
-
-
 	// ===========================================================
-	/*
+
 	li_node* now, * nxt;
 	g_buffer.idx = 0;
 	KEYT* lbas;
 	while (temp_list->size) {
 		for_each_list_node_safe(temp_list, now, nxt) {
-
 			gv = (gc_value*)now->data;
-			if (!gv->isdone) continue;
+			if (!gv->isdone) continue; // not done ignore
 			lbas = (KEYT*)bm->get_oob(bm, gv->ppa);
 			for (uint32_t i = 0; i < L2PGAP; i++) {
-				if (bm->is_invalid_piece(bm, gv->ppa * L2PGAP + i)) continue;
+
+				//invalid ppa ignore
+				if (bm->is_invalid_piece(bm, gv->ppa * L2PGAP + i)) continue; 
+
+				//g_buffer
 				memcpy(&g_buffer.value[g_buffer.idx * LPAGESIZE], &gv->value->value[i * LPAGESIZE], LPAGESIZE);
 				g_buffer.key[g_buffer.idx] = lbas[i];
-
 				g_buffer.idx++;
 
-				if (g_buffer.idx == L2PGAP) {
-					uint32_t res = page_map_gc_update(g_buffer.key, L2PGAP, __normal);
+				if (g_buffer.idx == L2PGAP) { // last piece
+
+					// update mapping table (4 times)
+					uint32_t res = page_map_gc_update(g_buffer.key, L2PGAP);
+
+					
+
+
 					validate_ppa(res, g_buffer.key, g_buffer.idx);
-					send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE), __normal);
+					send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
 					g_buffer.idx = 0;
 				}
 			}
@@ -146,7 +163,7 @@ void travel_page_in_segment(algorithm* __normal, __gsegment* _target_segment, __
 	p->reserve = bm->get_segment(bm, BLOCK_RESERVE); //get new reserve block from block_manager
 
 	list_free(temp_list);
-	*/
+
 }
 
 

@@ -28,6 +28,6 @@ typedef struct page_map_body {
 void run_hyun_gc(algorithm*, __segment*);
 
 void* page_gc_end_req(algo_req*);
-gc_value* send_req(uint32_t , uint8_t , value_set* , algorithm*);
+gc_value* send_req(uint32_t , uint8_t , value_set*);
 void travel_page_in_segment(algorithm* , __gsegment* , __segment*);
 void list_delete_node(list*,li_node*);

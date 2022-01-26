@@ -73,17 +73,9 @@ uint32_t normal_set(request* const req) { // WRITE
 	my_req->type = DATAW;
 	my_req->param = (void*)params;
 
-	/*// test
-	if(cnt_write_req == 10){
-		printf("call GC\n");
-		run_hyun_gc(& __normal);
-
-	}*/
-
 	// is_gc_needed means -> free segment size == 0 
 	if (__normal.bm->is_gc_needed(__normal.bm) == true) {
 		printf("\n============== GC start  ===============\n");
-		//exit(1);
 		run_hyun_gc(& __normal, reserve_segment);
 	}
 	
