@@ -28,6 +28,7 @@ struct algorithm __normal = {
 
 static hyun_map* map_table; // mapping table
 static __segment* hyun_segment; // segment for blockmanager
+static __segment* reserve_segment; // reserve block use for GC 
 static uint32_t cnt_write_req;
 
 
@@ -37,6 +38,7 @@ uint32_t normal_create(lower_info* li, blockmanager* a, algorithm* algo) {
 	algo->li = li; //lower_info
 	algo->bm = a; //blockmanager
 	hyun_segment = a->get_segment(a, BLOCK_ACTIVE); // first get_segment in create
+	reserve_segment = a->get_segment(a, BLOCK_RESERVE); // get segment for GC reserve
 	return 1;
 }
 
@@ -82,7 +84,7 @@ uint32_t normal_set(request* const req) { // WRITE
 	if (__normal.bm->is_gc_needed(__normal.bm) == true) {
 		printf("\n============== GC start  ===============\n");
 		//exit(1);
-		run_hyun_gc(& __normal);
+		run_hyun_gc(& __normal, reserve_segment);
 	}
 	
 	//printf("req->key:%u\n", req->key);
