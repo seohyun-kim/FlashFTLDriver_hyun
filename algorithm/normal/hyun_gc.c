@@ -6,6 +6,8 @@
 #include "hyun_gc.h"
 #include "../../include/data_struct/list.h"
 
+#define UINT_MAX 0xffffffff
+
 // 1. Invalidate page 많은 block(segment)선택 : [get_gc_target]
 // 2. for_each_page_in_seg 돌면서 segment 내 valid data의 page 주소 찾음
 // 3. valid data를 BLOCK_RESERVE 공간에 memcpy
@@ -14,16 +16,19 @@
 // 6. mapping table update
 
 static algorithm* __normal = NULL;
-
+static pm_body* p = NULL;
 
 
 uint32_t page_map_gc_update(KEYT* lba, uint32_t idx) {
 	uint32_t res = 0;
-	pm_body* p = (pm_body*)__normal->algo_body;
+	// (nil) here!!!!!
+	p = (pm_body*)__normal->algo_body;
 
-	// when the gc phase, It should get a page from the reserved block
-	res = __normal->bm->get_page_addr(p->reserve);
-	uint32_t old_ppa, new_ppa;
+	// when the gc phase, It should get a page from the reserved block 
+	//res = __normal->bm->get_page_addr(__normal->algo_body->reserve);
+	//res = __normal->bm->get_page_addr(p->reserve);
+
+	//uint32_t old_ppa, new_ppa;
 	for (uint32_t i = 0; i < idx; i++) { // L2PGAP times
 		KEYT t_lba = lba[i];
 		if (p->mapping[t_lba] != UINT_MAX) {
@@ -32,9 +37,9 @@ uint32_t page_map_gc_update(KEYT* lba, uint32_t idx) {
 		}
 		// mapping update
 		p->mapping[t_lba] = res * L2PGAP + i;
-		if (t_lba == test_key) {
+		/*if (t_lba == test_key) {
 			printf("test_key(%u) is set to %u in gc\n", test_key, res * L2PGAP + i);
-		}
+		}*/
 	}
 	return res;
 }
@@ -103,7 +108,7 @@ void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __s
 			}
 		}
 		if (should_read) { // valid piece
-			gv = send_req(page, GCDR, NULL, __normal);
+			gv = send_req(page, GCDR, NULL);
 			list_insert(temp_list, (void*)gv);// temp_list에 append
 
 		}
@@ -153,11 +158,11 @@ void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __s
 	if (g_buffer.idx != 0) {
 		uint32_t res = page_map_gc_update(g_buffer.key, g_buffer.idx);
 		validate_ppa(res, g_buffer.key, g_buffer.idx);
-		send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE), __normal);
+		send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
 		g_buffer.idx = 0;
 	}
 
-	bm->trim_segment(bm, target); //erase a block
+	bm->trim_segment(bm, _target_segment); //erase a block
 	p->active = p->reserve;//make reserved to active block
 	bm->change_reserve_to_active(bm, p->reserve);
 	p->reserve = bm->get_segment(bm, BLOCK_RESERVE); //get new reserve block from block_manager
@@ -171,7 +176,7 @@ void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __s
 
 void run_hyun_gc(algorithm* __normal, __segment* reserve_segment) {
 
-	pm_body* p = (pm_body*)__normal->algo_body;
+	p = (pm_body*)__normal->algo_body;
 
 
 	// get target segment for gc
@@ -185,7 +190,7 @@ void run_hyun_gc(algorithm* __normal, __segment* reserve_segment) {
 	travel_page_in_segment(__normal, target_segment, reserve_segment);
 	
 	// ERADSE target segment
-	__normal->bm->trim_segment(__normal->bm, target_segment);
+	//__normal->bm->trim_segment(__normal->bm, target_segment);
 
 	// change [ RESERVE BLOCK -> ACTIVE BLOCK ]
 	__normal->bm->change_reserve_to_active(__normal->bm, reserve_segment);
