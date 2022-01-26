@@ -1,5 +1,6 @@
 #include "../../include/container.h"
 #include "../../interface/interface.h"
+#include "../../include/data_struct/list.h"
 
 typedef struct align_gc_buffer {
 	uint8_t idx;
@@ -29,4 +30,4 @@ void run_hyun_gc(algorithm*);
 void* page_gc_end_req(algo_req*);
 gc_value* send_req(uint32_t , uint8_t , value_set* , algorithm*);
 void travel_page_in_segment(algorithm* , __gsegment* , __segment*);
-list_delete_node(temp_list, now);
+void list_delete_node(list*,li_node*);
