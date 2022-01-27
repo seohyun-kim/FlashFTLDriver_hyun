@@ -1,5 +1,3 @@
-
-
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,8 +21,6 @@ static __segment* hyun_segment = NULL;
 
 uint32_t page_map_gc_update(KEYT* lba, uint32_t idx, __segment* __reserve_segment) {
 	uint32_t res = 0;
-	// (nil) here!!!!!
-	//p = (pm_body*)__normal->algo_body;
 
 	// when the gc phase, It should get a page from the reserved block 
 	res = __normal->bm->get_page_addr(__reserve_segment);
@@ -34,15 +30,11 @@ uint32_t page_map_gc_update(KEYT* lba, uint32_t idx, __segment* __reserve_segmen
 		KEYT t_lba = lba[i];
 		if (map_table[t_lba].is_lba_re_req == true) {
 			// when mapping was updated, the old one is checked as a inavlid
-			// invalidate_ppa(p->mapping[t_lba]);
-			//printf("map table ppa : %u\n", map_table[t_lba].ppa);
 			__normal->bm->bit_unset(__normal->bm, map_table[t_lba].ppa);
 		}
 		// mapping update
 		map_table[t_lba].ppa = res * L2PGAP + i;
-		/*if (t_lba == test_key) {
-			printf("test_key(%u) is set to %u in gc\n", test_key, res * L2PGAP + i);
-		}*/
+
 	}
 	return res;
 }
@@ -117,8 +109,6 @@ void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __s
 		}
 	}
 
-	// ===========================================================
-
 	li_node* now, * nxt;
 	g_buffer.idx = 0;
 	KEYT* lbas;
@@ -132,7 +122,6 @@ void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __s
 				//invalid ppa ignore
 				if (bm->is_invalid_piece(bm, gv->ppa * L2PGAP + i)) continue; 
 
-				//g_buffer
 				memcpy(&g_buffer.value[g_buffer.idx * LPAGESIZE], &gv->value->value[i * LPAGESIZE], LPAGESIZE);
 				g_buffer.key[g_buffer.idx] = lbas[i];
 				g_buffer.idx++;
@@ -141,9 +130,6 @@ void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __s
 
 					// update mapping table (4 times)
 					uint32_t res = page_map_gc_update(g_buffer.key, L2PGAP, __reserve_segment);
-
-
-					// =============================
 
 					validate_ppa(res, g_buffer.key, g_buffer.idx);
 					send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
@@ -182,7 +168,28 @@ void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __s
 
 }
 
+if (g_buffer.idx != 0) {
+	uint32_t res = page_map_gc_update(g_buffer.key, g_buffer.idx, __reserve_segment);
+	validate_ppa(res, g_buffer.key, g_buffer.idx);
+	send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
+	g_buffer.idx = 0;
+}
 
+// ERASE target segment
+bm->trim_segment(bm, _target_segment);
+
+//change [RESERVE -> ACTIVE]
+hyun_segment = __reserve_segment;
+
+// Change [RESERVE BLOCK -> ACTIVE BLOCK]
+bm->change_reserve_to_active(bm, __reserve_segment);
+
+// Get NEW RESERVE BLOCK
+__reserve_segment = bm->get_segment(bm, BLOCK_RESERVE);
+
+list_free(temp_list);
+
+}
 
 
 void run_hyun_gc(algorithm* __normal, __segment* reserve_segment, hyun_map* _map_table, __segment* _hyun_segment) {

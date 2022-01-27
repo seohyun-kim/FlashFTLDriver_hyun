@@ -1,7 +1,3 @@
-
-
-
-
 //  FTL Page Mapping (except GC)
 //	2022-01-12
 
