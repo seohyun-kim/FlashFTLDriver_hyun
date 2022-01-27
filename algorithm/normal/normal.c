@@ -76,7 +76,7 @@ uint32_t normal_set(request* const req) { // WRITE
 	// is_gc_needed means -> free segment size == 0 
 	if (__normal.bm->is_gc_needed(__normal.bm) == true) {
 		printf("\n============== GC start  ===============\n");
-		run_hyun_gc(& __normal, reserve_segment);
+		run_hyun_gc(&__normal, reserve_segment, map_table);
 	}
 	
 	//printf("req->key:%u\n", req->key);
