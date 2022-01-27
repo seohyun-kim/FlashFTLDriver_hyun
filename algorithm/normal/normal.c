@@ -78,7 +78,7 @@ uint32_t normal_set(request* const req) { // WRITE
 		printf("\n============== GC start  ===============\n");
 		run_hyun_gc(&__normal, reserve_segment, map_table, hyun_segment);
 	}
-	
+
 	//printf("req->key:%u\n", req->key);
 	if (map_table[req->key].is_lba_re_req == true){ // if same lba re-req
 		__normal.bm->bit_unset(__normal.bm, map_table[req->key].ppa);  // origin mem unset
@@ -101,7 +101,7 @@ uint32_t normal_set(request* const req) { // WRITE
 
 	__normal.bm->bit_set(__normal.bm, map_table[req->key].ppa); // bit set
 	map_table[req->key].is_lba_re_req = true; // flag : LBA called
-	__normal->bm->set_oob(__normal->bm, (char*)req->key, sizeof(KEYT) * L2PGAP, map_table[req->key].ppa);
+	__normal.bm->set_oob(__normal.bm, (char*)&(req->key), sizeof(KEYT), map_table[req->key].ppa);
 
 	if (cnt_write_req % L2PGAP == 3) { // Once per 4 times (every last in 4)
 		__normal.li->write((map_table[req->key].ppa) / 4, PAGESIZE, value, my_req);

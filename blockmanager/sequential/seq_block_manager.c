@@ -203,7 +203,7 @@ __gsegment* sbm_get_gc_target(blockmanager* bm){
 	return res;
 }
 
-__segment* sbm_trim_segment(blockmanager *bm, __gsegment *gs){
+void sbm_trim_segment(blockmanager *bm, __gsegment *gs){
 	sbm_pri *pri=(sbm_pri*)bm->private_data;
 	__segment *s=&pri->seg_set[gs->seg_idx];
 	for(uint32_t i=0; i<BPS; i++){
@@ -217,7 +217,7 @@ __segment* sbm_trim_segment(blockmanager *bm, __gsegment *gs){
 	q_enqueue((void*)s, pri->free_segment_q);
 	bm->li->trim_block(s->seg_idx * _PPS);
 	free(gs);
-	return s;
+
 }
 #define EXTRACT_BID(target, ispiece) (target/(ispiece?L2PGAP:1))/_PPB
 #define EXTRACT_SID(target, ispiece) (EXTRACT_BID(target,ispiece))/BPS
@@ -258,6 +258,8 @@ bool sbm_is_invalid_piece(struct blockmanager* bm,uint32_t piece_ppa){
 
 void sbm_set_oob(struct blockmanager*,char *data, int len, uint32_t ppa){
 	uint32_t bid=EXTRACT_BID(ppa, false);
+	//printf("data는 몇일까 시발롬아 %p\n", data);
+	//printf("BMM 망할놈 : %p\n",BMM.total_block_set[bid].oob_list[ppa].d); 
 	memcpy(BMM.total_block_set[bid].oob_list[EXTRACT_INTRA_PPIDX(ppa, false)].d, data, len);
 }
 
