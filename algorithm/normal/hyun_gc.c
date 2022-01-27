@@ -165,18 +165,12 @@ void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __s
 		g_buffer.idx = 0;
 	}
 
-	//printf("\n\n\nreserve before trim=> %p   | target => %p \n\n\n\n", __reserve_segment, _target_segment);
 
 	// ERASE target segment
 	bm->trim_segment(bm, _target_segment);
 
 	//change [RESERVE -> ACTIVE]
 	hyun_segment = __reserve_segment;
-
-	//printf("\n\n\nreserve after trim=> %p | target => %p \n\n\n\n", __reserve_segment, _target_segment);
-
-	//change_target_to_reserve(__reserve_segment, _target_segment);
-
 
 	// Change [RESERVE BLOCK -> ACTIVE BLOCK]
 	bm->change_reserve_to_active(bm, __reserve_segment);
