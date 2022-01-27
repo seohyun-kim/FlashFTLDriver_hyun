@@ -1,3 +1,4 @@
+
 #include "./seq_block_manager.h"
 #include "../../include/debug_utils.h"
 typedef struct blockmanager blockmanager;
@@ -202,9 +203,9 @@ __gsegment* sbm_get_gc_target(blockmanager* bm){
 	return res;
 }
 
-void sbm_trim_segment(blockmanager *bm, __gsegment *gs){
+__segment* sbm_trim_segment(blockmanager *bm, __gsegment *gs){
 	sbm_pri *pri=(sbm_pri*)bm->private_data;
-	__segment *	s=&pri->seg_set[gs->seg_idx];
+	__segment *s=&pri->seg_set[gs->seg_idx];
 	for(uint32_t i=0; i<BPS; i++){
 		block_reinit(s->blocks[i]);
 	}
@@ -212,10 +213,11 @@ void sbm_trim_segment(blockmanager *bm, __gsegment *gs){
 	s->used_page_num=0;
 	s->validate_piece_num=s->invalidate_piece_num=0;
 	s->private_data=NULL;
-	
+
 	q_enqueue((void*)s, pri->free_segment_q);
 	bm->li->trim_block(s->seg_idx * _PPS);
 	free(gs);
+	return s;
 }
 #define EXTRACT_BID(target, ispiece) (target/(ispiece?L2PGAP:1))/_PPB
 #define EXTRACT_SID(target, ispiece) (EXTRACT_BID(target,ispiece))/BPS

@@ -23,7 +23,7 @@ int32_t sbm_get_page_addr(__segment *);
 int32_t sbm_pick_page_addr(__segment *);
 bool sbm_is_gc_needed(struct blockmanager *);
 __gsegment* sbm_get_gc_target(struct blockmanager*);
-void sbm_trim_segment(struct blockmanager *, __gsegment *);
+__segment* sbm_trim_segment(struct blockmanager *, __gsegment *);
 int sbm_bit_set(struct blockmanager*, uint32_t piece_ppa);
 int sbm_bit_unset(struct blockmanager*, uint32_t piece_ppa);
 bool sbm_bit_query(struct blockmanager*,uint32_t piece_ppa);

@@ -264,7 +264,7 @@ struct blockmanager{
 	bool (*check_full)				(__segment*);
 	bool (*is_gc_needed)			(struct blockmanager*);
 	__gsegment* (*get_gc_target)	(struct blockmanager*);
-	void (*trim_segment)			(struct blockmanager*, __gsegment*);
+	__segment* (*trim_segment)			(struct blockmanager*, __gsegment*);
 
 	int (*bit_set)		(struct blockmanager*, uint32_t piece_ppa);
 	int (*bit_unset)	(struct blockmanager*, uint32_t piece_ppa);

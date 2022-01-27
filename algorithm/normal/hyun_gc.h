@@ -24,9 +24,9 @@ typedef struct page_map_body {
 	__segment* active; //for gc
 }pm_body;
 
-
+void change_target_to_reserve(__segment*, __gsegment*);
 uint32_t  page_map_gc_update(KEYT* , uint32_t, __segment*);
-void run_hyun_gc(algorithm*, __segment*, hyun_map*);
+void run_hyun_gc(algorithm*, __segment*, hyun_map*, __segment*);
 
 void* page_gc_end_req(algo_req*);
 gc_value* send_req(uint32_t , uint8_t , value_set*);

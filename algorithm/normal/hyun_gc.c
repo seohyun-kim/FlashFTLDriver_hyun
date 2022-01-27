@@ -19,17 +19,15 @@
 static algorithm* __normal = NULL;
 static pm_body* p = NULL;
 static hyun_map* map_table=NULL;
-
-
+static __segment* hyun_segment = NULL;
 
 uint32_t page_map_gc_update(KEYT* lba, uint32_t idx, __segment* __reserve_segment) {
 	uint32_t res = 0;
 	// (nil) here!!!!!
-	p = (pm_body*)__normal->algo_body;
+	//p = (pm_body*)__normal->algo_body;
 
 	// when the gc phase, It should get a page from the reserved block 
 	res = __normal->bm->get_page_addr(__reserve_segment);
-	//res = __normal->bm->get_page_addr(p->reserve);
 
 	//uint32_t old_ppa, new_ppa;
 	for (uint32_t i = 0; i < idx; i++) { // L2PGAP times
@@ -37,6 +35,7 @@ uint32_t page_map_gc_update(KEYT* lba, uint32_t idx, __segment* __reserve_segmen
 		if (map_table[t_lba].is_lba_re_req == true) {
 			// when mapping was updated, the old one is checked as a inavlid
 			// invalidate_ppa(p->mapping[t_lba]);
+			//printf("map table ppa : %u\n", map_table[t_lba].ppa);
 			__normal->bm->bit_unset(__normal->bm, map_table[t_lba].ppa);
 		}
 		// mapping update
@@ -166,10 +165,24 @@ void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __s
 		g_buffer.idx = 0;
 	}
 
-	bm->trim_segment(bm, _target_segment); //erase a block
-	//p->active = p->reserve;//make reserved to active block
+	//printf("\n\n\nreserve before trim=> %p   | target => %p \n\n\n\n", __reserve_segment, _target_segment);
+
+	// ERASE target segment
+	bm->trim_segment(bm, _target_segment);
+
+	//change [RESERVE -> ACTIVE]
+	hyun_segment = __reserve_segment;
+
+	//printf("\n\n\nreserve after trim=> %p | target => %p \n\n\n\n", __reserve_segment, _target_segment);
+
+	//change_target_to_reserve(__reserve_segment, _target_segment);
+
+
+	// Change [RESERVE BLOCK -> ACTIVE BLOCK]
 	bm->change_reserve_to_active(bm, __reserve_segment);
-	__reserve_segment = bm->get_segment(bm, BLOCK_RESERVE); //get new reserve block from block_manager
+
+	// Get NEW RESERVE BLOCK
+	__reserve_segment = bm->get_segment(bm, BLOCK_RESERVE);
 
 	list_free(temp_list);
 
@@ -178,33 +191,17 @@ void travel_page_in_segment(algorithm* _normal, __gsegment* _target_segment, __s
 
 
 
-void run_hyun_gc(algorithm* __normal, __segment* reserve_segment, hyun_map* _map_table) {
-
-	p = (pm_body*)__normal->algo_body;
+void run_hyun_gc(algorithm* __normal, __segment* reserve_segment, hyun_map* _map_table, __segment* _hyun_segment) {
 	map_table = _map_table;
-
-	//p->reserve = reserve_segment;
-	printf("reserve : %u\n", reserve_segment->seg_idx);
+	hyun_segment = _hyun_segment;
 
 	// get target segment for gc
 	__gsegment* target_segment = __normal->bm->get_gc_target(__normal->bm);
-	//p->active = target_segment;
-
-	// get reserve segment for gc
-	//__segment* reserve_segment = __normal->bm->get_segment(__normal->bm, BLOCK_RESERVE);
 
 	// processing  per page in segment
-	// (find valid page -> copy value -> update map table)
+	// (find valid page -> copy value -> erase gc target -> change R2A -> update map table)
 	travel_page_in_segment(__normal, target_segment, reserve_segment);
 
-	// ERADSE target segment
-	//__normal->bm->trim_segment(__normal->bm, target_segment);
-
-	// change [ RESERVE BLOCK -> ACTIVE BLOCK ]
-	//__normal->bm->change_reserve_to_active(__normal->bm, reserve_segment);
-
-	// change [ gc target -> RESERVE BLOCK ]
-	//p->reserve = p->active;
 
 	return;
 }
